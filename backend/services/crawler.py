@@ -5,8 +5,8 @@ import time
 import uuid
 from datetime import datetime
 from playwright.async_api import async_playwright
-from services.personas import get_persona, PERSONAS
-from config import SCREENSHOTS_DIR, VIDEOS_DIR
+from backend.services.personas import get_persona, PERSONAS
+from backend.config import SCREENSHOTS_DIR, VIDEOS_DIR
 
 async def run_persona_test(test_id: int, base_url: str, persona_name: str, update_callback):
     persona = get_persona(persona_name)

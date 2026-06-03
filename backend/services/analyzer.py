@@ -1,7 +1,7 @@
 import json
 import os
 import httpx
-from config import OPENAI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, LLM_PROVIDER
+from backend.config import OPENAI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, LLM_PROVIDER
 
 _http_client = httpx.AsyncClient(timeout=30)
 

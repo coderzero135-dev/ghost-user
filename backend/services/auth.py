@@ -5,9 +5,9 @@ from fastapi import Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_HOURS
-from database import get_db
-from models import User
+from backend.config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_HOURS
+from backend.database import get_db
+from backend.models import User
 
 security = HTTPBearer(auto_error=False)
 

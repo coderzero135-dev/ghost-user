@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_db
-from models import User
-from services.auth import hash_password, verify_password, create_token, require_user, get_current_user
+from backend.database import get_db
+from backend.models import User
+from backend.services.auth import hash_password, verify_password, create_token, require_user, get_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 

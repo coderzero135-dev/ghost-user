@@ -4,12 +4,12 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_db
-from models import Test, PersonaResult, Issue, UXScore, User
-from schemas import CreateTestRequest, TestResponse, TestDetailResponse
-from services.crawler import run_all_personas
-from services.analyzer import analyze_screenshots
-from services.auth import require_user, get_current_user
+from backend.database import get_db
+from backend.models import Test, PersonaResult, Issue, UXScore, User
+from backend.services.auth import require_user, get_current_user
+from backend.services.crawler import run_all_personas
+from backend.services.analyzer import analyze_screenshots
+from backend.schemas import CreateTestRequest, TestResponse, TestDetailResponse
 
 router = APIRouter(prefix="/api/tests", tags=["tests"])
 
@@ -29,7 +29,7 @@ async def _update_persona_callback(test_id: int, persona_name: str, data: dict, 
                 setattr(pr, key, val)
 
 async def _run_test_workflow(test_id: int, url: str):
-    from database import async_session
+    from backend.database import async_session
     async with async_session() as db:
         try:
             test = await db.get(Test, test_id)

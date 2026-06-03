@@ -5,9 +5,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from starlette.requests import Request
 import jinja2
-from database import init_db
-from routers.tests import router as tests_router
-from routers.auth import router as auth_router
+from backend.database import init_db
+from backend.routers.tests import router as tests_router
+from backend.routers.auth import router as auth_router
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
