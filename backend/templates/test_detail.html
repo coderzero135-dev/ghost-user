@@ -78,14 +78,18 @@ function renderPersonaCard(p) {
 }
 
 function renderIssueRow(i) {
+    const personaLabel = {
+        first_time_customer: 'First-Time Customer', confused_grandparent: 'Confused Grandparent',
+        power_user: 'Power User', impatient_gamer: 'Impatient Gamer',
+        mobile_user: 'Mobile User', potential_buyer: 'Potential Buyer'
+    }[i.persona_name] || i.persona_name.replace(/_/g, ' ');
     return `
-    <div class="flex items-start space-x-3 py-3 border-b border-gray-800 last:border-0">
-        <span class="px-2 py-0.5 rounded text-xs font-medium border ${getSeverityColor(i.severity)} capitalize">${i.severity}</span>
+    <div class="flex items-start space-x-3 px-5 py-3">
+        <span class="px-2 py-0.5 rounded text-xs font-medium border ${getSeverityColor(i.severity)} capitalize shrink-0">${i.severity}</span>
         <div class="flex-1 min-w-0">
             <p class="text-sm">${i.description}</p>
-            <p class="text-xs text-gray-500 mt-0.5">${i.type.replace(/_/g, ' ')} ${i.element ? '• ' + i.element : ''}</p>
+            <p class="text-xs text-gray-500 mt-0.5">${personaLabel}</p>
         </div>
-        <span class="text-xs text-gray-600 whitespace-nowrap">${i.persona_name.replace(/_/g, ' ')}</span>
     </div>`;
 }
 
@@ -161,16 +165,35 @@ async function loadTest() {
         </div>`;
 
         if (data.issues && data.issues.length > 0) {
-            const bySeverity = { critical: [], high: [], medium: [], low: [] };
-            data.issues.forEach(i => { (bySeverity[i.severity] || bySeverity.medium).push(i); });
-            const sorted = [...(bySeverity.critical || []), ...(bySeverity.high || []), ...(bySeverity.medium || []), ...(bySeverity.low || [])];
-            html += `
-            <div>
-                <h3 class="text-lg font-semibold mb-4">Issues Found (${sorted.length})</h3>
-                <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-4 divide-y divide-gray-800">
-                    ${sorted.map(renderIssueRow).join('')}
-                </div>
-            </div>`;
+            const groups = {};
+            const groupLabels = {
+                missing_element: { icon: '🔗', title: 'Missing Links & Buttons', desc: 'Personas looked for navigation links or buttons that were not found' },
+                navigation_error: { icon: '🚦', title: 'Navigation Problems', desc: 'Pages that failed to load or actions that timed out' },
+                click_error: { icon: '🖱️', title: 'Click Issues', desc: 'Elements that were difficult or confusing to interact with' },
+                fatal: { icon: '💥', title: 'Critical Errors', desc: 'Serious failures that prevented testing' },
+            };
+            data.issues.forEach(i => {
+                const g = groups[i.type] || (groups[i.type] = []);
+                g.push(i);
+            });
+            html += `<div><h3 class="text-lg font-semibold mb-4">Issues Found (${data.issues.length})</h3><div class="space-y-4">`;
+            for (const [type, items] of Object.entries(groups)) {
+                const meta = groupLabels[type] || { icon: '⚠️', title: type.replace(/_/g, ' '), desc: '' };
+                html += `
+                <div class="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
+                    <div class="px-5 py-3 border-b border-gray-800 flex items-center space-x-3">
+                        <span class="text-lg">${meta.icon}</span>
+                        <div>
+                            <h4 class="font-semibold text-sm">${meta.title} (${items.length})</h4>
+                            ${meta.desc ? `<p class="text-xs text-gray-500">${meta.desc}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="divide-y divide-gray-800/50">
+                        ${items.map(renderIssueRow).join('')}
+                    </div>
+                </div>`;
+            }
+            html += `</div></div>`;
         }
 
         html += `<div class="text-center pt-4"><a href="/dashboard" class="text-ghost-400 hover:text-ghost-300 text-sm">← Back to Dashboard</a></div>`;
