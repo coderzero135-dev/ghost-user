@@ -71,16 +71,20 @@ async def _analyze_openai(url, persona_results, all_issues):
 
 
 async def _analyze_gemini(url, persona_results, all_issues):
+    import traceback
     system, user = _build_prompt(url, persona_results, all_issues)
     prompt = f"{system}\n\n{user}"
     for attempt in range(2):
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
+            async with httpx.AsyncClient(timeout=60) as client:
                 resp = await client.post(
                     f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}",
                     json={"contents": [{"parts": [{"text": prompt}]}],
                           "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1000}},
                 )
+                if resp.status_code != 200:
+                    print(f"[Gemini] HTTP {resp.status_code}: {resp.text[:500]}")
+                    continue
                 data = resp.json()
                 text = data["candidates"][0]["content"]["parts"][0]["text"]
                 text = text.strip()
@@ -95,8 +99,8 @@ async def _analyze_gemini(url, persona_results, all_issues):
                 text = text.strip()
                 return json.loads(text)
         except Exception as e:
-            if attempt == 1:
-                print(f"[Gemini] Error: {e}")
+            print(f"[Gemini] Attempt {attempt+1} failed: {e}")
+            traceback.print_exc()
     return _generate_offline_analysis(url, persona_results, all_issues)
 
 

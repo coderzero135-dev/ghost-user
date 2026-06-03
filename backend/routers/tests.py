@@ -137,7 +137,16 @@ async def create_test(
     user.credits -= 1
     await db.commit()
 
-    task = asyncio.create_task(_run_test_workflow(test.id, req.url))
+    async def _timed_workflow():
+        try:
+            await asyncio.wait_for(_run_test_workflow(test.id, req.url), timeout=300)
+        except asyncio.TimeoutError:
+            async with async_session() as db:
+                t = await db.get(Test, test.id)
+                if t:
+                    t.status = "failed"
+                    await db.commit()
+    task = asyncio.create_task(_timed_workflow())
     _test_tasks[test.id] = task
 
     return TestResponse(
