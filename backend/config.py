@@ -7,6 +7,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "offline")
+GEMINI_API_KEY = GEMINI_API_KEY.strip()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./ghostuser.db")
 JWT_SECRET = os.getenv("JWT_SECRET", "change-this-to-a-random-secret")

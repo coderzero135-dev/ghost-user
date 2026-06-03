@@ -72,35 +72,41 @@ async def _analyze_openai(url, persona_results, all_issues):
 
 async def _analyze_gemini(url, persona_results, all_issues):
     import traceback
-    system, user = _build_prompt(url, persona_results, all_issues)
-    prompt = f"{system}\n\n{user}"
-    for attempt in range(2):
-        try:
-            async with httpx.AsyncClient(timeout=60) as client:
-                resp = await client.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}",
-                    json={"contents": [{"parts": [{"text": prompt}]}],
-                          "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1000}},
-                )
-                if resp.status_code != 200:
-                    print(f"[Gemini] HTTP {resp.status_code}: {resp.text[:500]}")
-                    continue
-                data = resp.json()
-                text = data["candidates"][0]["content"]["parts"][0]["text"]
-                text = text.strip()
-                if text.startswith("```"):
-                    idx = text.find("\n")
-                    if idx > 0:
-                        text = text[idx+1:]
-                    if text.endswith("```"):
-                        text = text[:-3].strip()
-                    elif text.endswith("``"):
-                        text = text[:-2].strip()
-                text = text.strip()
-                return json.loads(text)
-        except Exception as e:
-            print(f"[Gemini] Attempt {attempt+1} failed: {e}")
-            traceback.print_exc()
+    print(f"[Gemini] Starting analysis for {url}")
+    try:
+        system, user = _build_prompt(url, persona_results, all_issues)
+        prompt = f"{system}\n\n{user}"
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=60) as client:
+                    resp = await client.post(
+                        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GEMINI_API_KEY}",
+                        json={"contents": [{"parts": [{"text": prompt}]}],
+                              "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1000}},
+                    )
+                    if resp.status_code != 200:
+                        print(f"[Gemini] HTTP {resp.status_code}: {resp.text[:500]}")
+                        continue
+                    data = resp.json()
+                    text = data["candidates"][0]["content"]["parts"][0]["text"]
+                    text = text.strip()
+                    if text.startswith("```"):
+                        idx = text.find("\n")
+                        if idx > 0:
+                            text = text[idx+1:]
+                        if text.endswith("```"):
+                            text = text[:-3].strip()
+                        elif text.endswith("``"):
+                            text = text[:-2].strip()
+                    text = text.strip()
+                    return json.loads(text)
+            except Exception as e:
+                print(f"[Gemini] Attempt {attempt+1} failed: {e}")
+                traceback.print_exc()
+    except Exception as e:
+        print(f"[Gemini] Pre-call error: {e}")
+        traceback.print_exc()
+    print("[Gemini] Falling back to offline analysis")
     return _generate_offline_analysis(url, persona_results, all_issues)
 
 
