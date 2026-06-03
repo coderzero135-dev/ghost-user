@@ -26,14 +26,16 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
         async with async_playwright() as p:
             browser = await p.chromium.launch(
                 headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox"]
+                args=[
+                    "--no-sandbox", "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage", "--disable-gpu",
+                    "--single-process", "--no-zygote",
+                ]
             )
 
             context_options = {
                 "viewport": persona["viewport"],
                 "device_scale_factor": persona.get("device_scale_factor", 1),
-                "record_video_dir": video_dir,
-                "record_video_size": {"width": min(persona["viewport"]["width"], 1280), "height": min(persona["viewport"]["height"], 720)},
                 "user_agent": _get_user_agent(persona_name),
             }
 
@@ -151,26 +153,14 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
                     except:
                         pass
 
-            video_path = None
             try:
-                video = page.video
-                if video:
-                    await page.close()
-                    video_path = await video.path()
-                    if video_path and os.path.exists(video_path):
-                        new_name = os.path.join(video_dir, f"{persona_name}.webm")
-                        os.rename(video_path, new_name)
-                        video_path = f"uploads/videos/test_{test_id}/{persona_name}.webm"
-                else:
-                    await page.close()
-            except:
                 await page.close()
-
+            except:
+                pass
             try:
                 await context.close()
             except:
                 pass
-
             try:
                 await browser.close()
             except:
@@ -181,7 +171,6 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
                 "actions_performed": len(navigation_path),
                 "load_times": load_times,
                 "issues_detected": issues_found,
-                "video_available": video_path is not None,
                 "screenshot_count": len(screenshots),
             }
 
@@ -196,7 +185,7 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
                 "persona_notes": json.dumps(analysis),
             })
 
-            return screenshots, navigation_path, issues_found, load_times, video_path
+            return screenshots, navigation_path, issues_found, load_times, None
 
     except Exception as e:
         await update_callback(test_id, persona_name, {
@@ -223,18 +212,10 @@ def _get_user_agent(persona_name: str):
 
 async def run_all_personas(test_id: int, url: str, update_callback):
     results = {}
-    tasks = []
     for persona in PERSONAS:
-        task = asyncio.create_task(
-            run_persona_test(test_id, url, persona["name"], update_callback)
-        )
-        tasks.append((persona["name"], task))
-
-    for name, task in tasks:
         try:
-            result = await task
-            results[name] = result
+            result = await run_persona_test(test_id, url, persona["name"], update_callback)
+            results[persona["name"]] = result
         except Exception as e:
-            results[name] = ([], [], [{"type": "fatal", "description": str(e), "severity": "critical"}], {}, None)
-
+            results[persona["name"]] = ([], [], [{"type": "fatal", "description": str(e), "severity": "critical"}], {}, None)
     return results
