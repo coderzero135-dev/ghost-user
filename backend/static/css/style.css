@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+* { font-family: 'Inter', system-ui, sans-serif; }
+
+body { background: #030712; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #111827; }
+::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+::selection { background: rgba(107, 91, 255, 0.3); }
+
+@keyframes pulse-ghost {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+.animate-pulse-ghost { animation: pulse-ghost 2s ease-in-out infinite; }
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px #111827 inset !important;
+    -webkit-text-fill-color: #fff !important;
+}
+
+video { background: #000; }
+details summary { user-select: none; }
+details summary::-webkit-details-marker { display: none; }

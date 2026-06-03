@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install playwright && python -m playwright install chromium
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+RUN python -m playwright install-deps chromium
+
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

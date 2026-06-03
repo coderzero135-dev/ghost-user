@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost User - {% block title %}Test Your Website with AI Personas{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ghost: { 50: '#f0f0ff', 100: '#e0e0ff', 200: '#c0c0ff', 300: '#a0a0ff', 400: '#8080ff', 500: '#6b5bff', 600: '#5a4ae0', 700: '#4a3ac0', 800: '#3a2aa0', 900: '#2a1a80' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👻</text></svg>">
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+    <nav class="border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center space-x-2">
+                    <span class="text-2xl">👻</span>
+                    <span class="text-xl font-bold bg-gradient-to-r from-ghost-400 to-purple-400 bg-clip-text text-transparent">Ghost User</span>
+                </a>
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-gray-300 hover:text-white text-sm">Home</a>
+                    <a href="/dashboard" class="text-gray-300 hover:text-white text-sm">Dashboard</a>
+                    <div id="auth-nav">
+                        <a href="/login" class="text-gray-300 hover:text-white text-sm">Log In</a>
+                        <a href="/signup" class="bg-ghost-600 hover:bg-ghost-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all ml-2">Sign Up</a>
+                    </div>
+                    <div id="user-nav" class="hidden items-center space-x-3">
+                        <span id="credit-badge" class="text-xs bg-ghost-900/50 border border-ghost-700/50 px-2 py-1 rounded-full text-ghost-300"></span>
+                        <span id="user-email" class="text-sm text-gray-400"></span>
+                        <button id="logout-btn" class="text-sm text-gray-500 hover:text-gray-300">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <main>{% block content %}{% endblock %}</main>
+    <script src="/static/js/app.js"></script>
+    <script>
+    (function() {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        if (token && userData) {
+            try {
+                const user = JSON.parse(userData);
+                document.getElementById('auth-nav').classList.add('hidden');
+                const un = document.getElementById('user-nav');
+                un.classList.remove('hidden');
+                document.getElementById('user-email').textContent = user.email;
+                document.getElementById('credit-badge').textContent = user.credits + ' credits';
+            } catch(e) {}
+        }
+        document.getElementById('logout-btn')?.addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        });
+    })();
+    </script>
+</body>
+</html>

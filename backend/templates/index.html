@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Test Your Website with AI Personas{% endblock %}
+{% block content %}
+<section class="relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-ghost-900/20 to-transparent pointer-events-none"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32 text-center relative">
+        <div class="inline-flex items-center px-3 py-1 rounded-full bg-ghost-900/50 border border-ghost-700/50 text-ghost-300 text-sm mb-8">
+            🎭 6 AI Personas • Real Browser Testing • UX Score
+        </div>
+        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+            <span class="bg-gradient-to-r from-white via-ghost-200 to-purple-300 bg-clip-text text-transparent">100 users test your website</span><br>
+            <span class="text-gray-400">in 5 minutes.</span>
+        </h1>
+        <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+            Stop launching blind. Ghost User simulates real people — from confused grandparents to power users — and shows you exactly where they get stuck.
+        </p>
+        <div class="max-w-xl mx-auto">
+            <form id="test-form" class="flex flex-col sm:flex-row gap-3">
+                <input type="url" id="url-input" required placeholder="https://your-website.com" class="flex-1 px-5 py-3.5 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-ghost-500 focus:ring-1 focus:ring-ghost-500 text-lg">
+                <button type="submit" class="px-8 py-3.5 bg-ghost-600 hover:bg-ghost-500 text-white font-semibold rounded-xl transition-all text-lg shadow-lg shadow-ghost-600/25 whitespace-nowrap">
+                    Test My Site →
+                </button>
+            </form>
+            <p class="text-gray-500 text-sm mt-3">Free plan: 3 tests/month. No credit card required.</p>
+        </div>
+    </div>
+</section>
+
+<section class="py-24 border-t border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+            {% set personas = [
+                ("🆕", "First-Time Customer", "Reads everything, looks for trust signals"),
+                ("👴", "Confused Grandparent", "Slow, hesitant, clicks wrong things"),
+                ("⚡", "Power User", "Moves fast, wants efficiency"),
+                ("🎮", "Impatient Gamer", "Zero patience, aggressive clicking"),
+                ("📱", "Mobile User", "3G connection, touch navigation"),
+                ("💰", "Potential Buyer", "Compares plans, reads reviews")
+            ] %}
+            {% for emoji, label, desc in personas %}
+            <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-5 text-center hover:border-ghost-700/50 transition-all">
+                <div class="text-3xl mb-2">{{ emoji }}</div>
+                <h3 class="font-semibold text-sm mb-1">{{ label }}</h3>
+                <p class="text-xs text-gray-500">{{ desc }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="py-24 border-t border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-center mb-16">What you get after every test</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="bg-gray-900/30 border border-gray-800 rounded-2xl p-8">
+                <div class="text-3xl mb-4">🎬</div>
+                <h3 class="text-lg font-semibold mb-2">Video Replays</h3>
+                <p class="text-gray-400 text-sm">Watch every persona navigate your site. See exactly where they hesitate, click, and get stuck.</p>
+            </div>
+            <div class="bg-gray-900/30 border border-gray-800 rounded-2xl p-8">
+                <div class="text-3xl mb-4">🔍</div>
+                <h3 class="text-lg font-semibold mb-2">Issue Report</h3>
+                <p class="text-gray-400 text-sm">Confusing buttons, dead ends, broken links, and unclear copy — all cataloged by severity.</p>
+            </div>
+            <div class="bg-gray-900/30 border border-gray-800 rounded-2xl p-8">
+                <div class="text-3xl mb-4">📊</div>
+                <h3 class="text-lg font-semibold mb-2">UX Score</h3>
+                <p class="text-gray-400 text-sm">A clear 0-100 score with breakdowns for navigation, clarity, speed, mobile, and content.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-24 border-t border-gray-800 bg-gradient-to-b from-gray-900/30 to-transparent">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-6">Pricing</h2>
+        <div class="grid md:grid-cols-3 gap-6 mt-12">
+            <div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-8 text-left">
+                <h3 class="text-lg font-semibold mb-1">Free</h3>
+                <div class="text-3xl font-bold mb-4">₹0</div>
+                <ul class="space-y-2 text-sm text-gray-400 mb-8">
+                    <li>✓ 3 tests / month</li>
+                    <li>✓ 6 AI personas</li>
+                    <li>✓ Basic UX score</li>
+                    <li>✓ Screenshots</li>
+                </ul>
+                <a href="/signup" class="block text-center border border-gray-700 hover:border-ghost-500 rounded-xl py-3 text-sm font-medium transition-all">Get Started</a>
+            </div>
+            <div class="bg-ghost-900/30 border-2 border-ghost-500/50 rounded-2xl p-8 text-left relative">
+                <div class="absolute -top-3 right-6 bg-ghost-600 text-xs font-bold px-3 py-1 rounded-full">Popular</div>
+                <h3 class="text-lg font-semibold mb-1">Pro</h3>
+                <div class="text-3xl font-bold mb-4">₹999<span class="text-sm font-normal text-gray-500">/mo</span></div>
+                <ul class="space-y-2 text-sm text-gray-400 mb-8">
+                    <li>✓ 30 tests / month</li>
+                    <li>✓ 6 AI personas</li>
+                    <li>✓ Full UX score + breakdown</li>
+                    <li>✓ Video replays</li>
+                    <li>✓ Priority support</li>
+                </ul>
+                <a href="/" class="block text-center bg-ghost-600 hover:bg-ghost-500 rounded-xl py-3 text-sm font-medium transition-all">Subscribe →</a>
+            </div>
+            <div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-8 text-left">
+                <h3 class="text-lg font-semibold mb-1">Agency</h3>
+                <div class="text-3xl font-bold mb-4">₹4,999<span class="text-sm font-normal text-gray-500">/mo</span></div>
+                <ul class="space-y-2 text-sm text-gray-400 mb-8">
+                    <li>✓ Unlimited tests</li>
+                    <li>✓ 6 AI personas</li>
+                    <li>✓ Full UX score + breakdown</li>
+                    <li>✓ Video replays</li>
+                    <li>✓ White-label reports</li>
+                    <li>✓ API access</li>
+                </ul>
+                <a href="/" class="block text-center border border-gray-700 hover:border-ghost-500 rounded-xl py-3 text-sm font-medium transition-all">Contact Us</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="border-t border-gray-800 py-8 text-center text-gray-500 text-sm">
+    Ghost User — Built with ❤️ for founders who care about UX
+</footer>
+
+<script>
+document.getElementById('test-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = document.getElementById('url-input').value;
+    const btn = e.target.querySelector('button');
+    btn.textContent = 'Testing...';
+    btn.disabled = true;
+
+    const token = localStorage.getItem('token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    try {
+        const res = await fetch('/api/tests', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        window.location.href = `/test/${data.id}`;
+    } catch (err) {
+        alert('Error starting test. Check console for details.');
+        console.error(err);
+        btn.textContent = 'Test My Site →';
+        btn.disabled = false;
+    }
+});
+</script>
+{% endblock %}

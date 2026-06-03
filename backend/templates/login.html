@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-20">
+    <div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-8">
+        <div class="text-center mb-8">
+            <span class="text-4xl">👻</span>
+            <h1 class="text-2xl font-bold mt-2">Welcome back</h1>
+            <p class="text-gray-400 text-sm">Log in to your Ghost User account</p>
+        </div>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label class="text-sm text-gray-400 block mb-1">Email</label>
+                <input type="email" id="email" required class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-ghost-500">
+            </div>
+            <div>
+                <label class="text-sm text-gray-400 block mb-1">Password</label>
+                <input type="password" id="password" required minlength="6" class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-ghost-500">
+            </div>
+            <button type="submit" class="w-full py-2.5 bg-ghost-600 hover:bg-ghost-500 text-white font-semibold rounded-lg transition-all">Log In</button>
+            <p id="login-error" class="text-red-400 text-sm text-center hidden"></p>
+        </form>
+        <p class="text-center text-sm text-gray-500 mt-6">Don't have an account? <a href="/signup" class="text-ghost-400 hover:text-ghost-300">Sign up</a></p>
+    </div>
+</div>
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const err = document.getElementById('login-error');
+    err.classList.add('hidden');
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password})
+        });
+        const data = await res.json();
+        if (!res.ok) { err.textContent = data.detail || 'Login failed'; err.classList.remove('hidden'); return; }
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = '/dashboard';
+    } catch(e) { err.textContent = 'Connection error'; err.classList.remove('hidden'); }
+});
+</script>
+{% endblock %}
