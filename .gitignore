@@ -4,3 +4,11 @@ __pycache__/
 .env
 backend/uploads/
 node_modules/
+*.log
+*.err
+fly_token.txt
+quick_test.py
+test_*.py
+debug_*.py
+check_*.py
+verify_*.py
