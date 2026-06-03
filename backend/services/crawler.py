@@ -8,6 +8,77 @@ from playwright.async_api import async_playwright
 from backend.services.personas import get_persona, PERSONAS
 from backend.config import SCREENSHOTS_DIR, VIDEOS_DIR
 
+_SELECTOR_LABELS = {
+    "pricing": "pricing page",
+    "signup": "signup page",
+    "register": "registration page",
+    "get-started": "Get Started link",
+    "cta": "call-to-action button",
+    "feature": "features page",
+    "api": "API documentation",
+    "integrat": "integrations page",
+    "docs": "documentation",
+    "blog": "blog",
+    "testimonial": "testimonials",
+    "review": "reviews",
+    "faq": "FAQ page",
+    "help": "help page",
+    "support": "support page",
+    "contact": "contact page",
+    "about": "about page",
+    "Home": "homepage link",
+    "Pricing": "Pricing link",
+    "Features": "Features link",
+    "Get Started": "Get Started link",
+    "Sign Up": "Sign Up link",
+    "Buy": "Buy/purchase link",
+    "Checkout": "checkout page",
+    "FAQ": "FAQ link",
+    "Contact": "Contact link",
+    "About": "About link",
+    "Blog": "Blog link",
+    "Help": "Help link",
+    "Support": "Support link",
+    "Testimonials": "Testimonials link",
+    "Reviews": "Reviews link",
+    "Questions": "Questions/FAQ link",
+    "email": "email input field",
+}
+
+_PERSONA_LABELS = {
+    "first_time_customer": "First-Time Customer",
+    "confused_grandparent": "Confused Grandparent",
+    "power_user": "Power User",
+    "impatient_gamer": "Impatient Gamer",
+    "mobile_user": "Mobile User",
+    "potential_buyer": "Potential Buyer",
+}
+
+def _human_issue(selectors, persona_name):
+    hints = []
+    for s in selectors:
+        for key, label in _SELECTOR_LABELS.items():
+            if key.lower() in s.lower():
+                hints.append(label)
+                break
+    if hints:
+        desc = f"Could not find the {' or '.join(set(hints))} on the page"
+    else:
+        desc = "A link or button the persona was looking for was missing"
+    persona = _PERSONA_LABELS.get(persona_name, persona_name)
+    return f"{persona} expected to find: {desc}"
+
+def _human_action(action_type, error):
+    labels = {
+        "navigate": "page navigation (page may be slow or unreachable)",
+        "click_first": "clicking a link or button (element may be missing or hidden)",
+        "scroll": "scrolling the page",
+        "go_back": "going back to the previous page",
+        "fill_first": "filling in a form field (field may be missing or hidden)",
+        "click_random_nonlink": "clicking a non-interactive element",
+    }
+    return labels.get(action_type, action_type)
+
 async def run_persona_test(test_id: int, base_url: str, persona_name: str, update_callback):
     persona = get_persona(persona_name)
     session_id = str(uuid.uuid4())[:8]
@@ -98,7 +169,7 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
                             navigation_path.append({"step": step, "action": "click_failed", "selectors": selectors})
                             issues_found.append({
                                 "type": "missing_element",
-                                "description": f"Could not find any of: {selectors}",
+                                "description": _human_issue(selectors, persona_name),
                                 "severity": "medium"
                             })
                         await asyncio.sleep(min(wait_time / 1000, 2))
@@ -143,7 +214,7 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
                 except Exception as e:
                     issues_found.append({
                         "type": "navigation_error",
-                        "description": f"Error at step {step} ({action_type}): {str(e)}",
+                        "description": f"Error during {action_type}: {_human_action(action_type, str(e))}",
                         "severity": "medium"
                     })
                     try:
