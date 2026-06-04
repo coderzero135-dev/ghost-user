@@ -64,7 +64,7 @@ function renderPersonaCard(p) {
         <details>
             <summary class="text-sm text-primary-400 cursor-pointer mb-2">Screenshots (${screenshots.length})</summary>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                ${screenshots.map(s => `<a href="/${s}" target="_blank"><img src="/${s}" class="rounded-lg border border-gray-700 hover:border-primary-500 transition-all w-full"></a>`).join('')}
+                ${screenshots.map(s => `<img src="/${s}" onclick="openLightbox('/${s}')" class="rounded-lg border border-gray-700 hover:border-primary-500 transition-all w-full cursor-pointer">`).join('')}
             </div>
         </details>` : ''}
         ${p.navigation_path && p.navigation_path.length > 0 ? `
@@ -226,6 +226,48 @@ async function loadTest() {
     }
 }
 
+let currentShot = null;
+let allShots = [];
+
+function openLightbox(src) {
+    allShots = Array.from(document.querySelectorAll('#test-detail img[src]')).map(img => img.src);
+    currentShot = allShots.indexOf(src.startsWith('http') ? src : window.location.origin + src);
+    if (currentShot === -1) currentShot = 0;
+    showShot();
+    document.getElementById('lightbox').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function nextShot() { if (allShots.length) { currentShot = (currentShot + 1) % allShots.length; showShot(); } }
+function prevShot() { if (allShots.length) { currentShot = (currentShot - 1 + allShots.length) % allShots.length; showShot(); } }
+
+function showShot() {
+    document.getElementById('lightbox-img').src = allShots[currentShot];
+    document.getElementById('lightbox-count').textContent = `${currentShot + 1} / ${allShots.length}`;
+}
+
+document.addEventListener('keydown', (e) => {
+    if (document.getElementById('lightbox').classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') nextShot();
+    if (e.key === 'ArrowLeft') prevShot();
+});
+
 loadTest();
+
 </script>
+
+<div id="lightbox" class="hidden fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onclick="closeLightbox()">
+    <button class="absolute top-4 right-4 text-white/60 hover:text-white text-2xl z-10" onclick="closeLightbox()">&times;</button>
+    <button class="absolute left-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white text-3xl z-10 px-2" onclick="event.stopPropagation(); prevShot()">‹</button>
+    <button class="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white text-3xl z-10 px-2" onclick="event.stopPropagation(); nextShot()">›</button>
+    <span id="lightbox-count" class="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-sm z-10 bg-black/50 px-3 py-1 rounded-full"></span>
+    <img id="lightbox-img" src="" class="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl" onclick="event.stopPropagation()" />
+</div>
+
 {% endblock %}
