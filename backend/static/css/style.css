@@ -11,11 +11,11 @@ body { background: #030712; }
 
 ::selection { background: rgba(129, 140, 248, 0.3); color: #fff; }
 
-@keyframes pulse-ghost {
+@keyframes pulse-nipx {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
-.animate-pulse-ghost { animation: pulse-ghost 2s ease-in-out infinite; }
+.animate-pulse-nipx { animation: pulse-nipx 2s ease-in-out infinite; }
 
 @keyframes float {
     0%, 100% { transform: translateY(0px); }

@@ -122,7 +122,7 @@ async def create_test(
     user: User = Depends(get_current_user),
 ):
     if not user:
-        user = User(email=f"anon_{datetime.utcnow().timestamp()}@ghostuser.app", credits=1)
+        user = User(email=f"anon_{datetime.utcnow().timestamp()}@nipx.app", credits=1)
         db.add(user)
         await db.flush()
 

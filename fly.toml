@@ -1,4 +1,4 @@
-app = "ghost-user"
+app = "nipx"
 primary_region = "ams"
 
 [build]

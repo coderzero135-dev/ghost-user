@@ -9,7 +9,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "offline")
 GEMINI_API_KEY = GEMINI_API_KEY.strip()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./ghostuser.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./nipx.db")
 JWT_SECRET = os.getenv("JWT_SECRET", "change-this-to-a-random-secret")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 72
