@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100" width="340" height="100">
+  <defs>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="50%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#A78BFA"/>
+    </linearGradient>
+  </defs>
+  <text x="0" y="72"
+    font-family="Inter, SF Pro Display, system-ui, sans-serif"
+    font-size="72"
+    font-weight="900"
+    fill="url(#brand)"
+    letter-spacing="-3">nip</text>
+  <text x="155" y="72"
+    font-family="Inter, SF Pro Display, system-ui, sans-serif"
+    font-size="72"
+    font-weight="900"
+    fill="#FFFFFF"
+    letter-spacing="-3">X</text>
+  <circle cx="74" cy="24" r="7" fill="url(#brand)"/>
+  <text x="2" y="92"
+    font-family="Inter, SF Pro Display, system-ui, sans-serif"
+    font-size="11"
+    font-weight="600"
+    fill="#818CF8"
+    letter-spacing="4">AI PERSONAS</text>
+</svg>
