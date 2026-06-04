@@ -19,6 +19,12 @@
 @keyframes slide-in-right { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
 @keyframes scale-in { from { opacity:0; transform: scale(0.8); } to { opacity:1; transform: scale(1); } }
 @keyframes dash { to { stroke-dashoffset: 0; } }
+@keyframes cat-breathe { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(1.04); } }
+@keyframes cat-ears-l { 0%,70%,100% { transform: rotate(0deg); } 75% { transform: rotate(-15deg); } 85% { transform: rotate(0deg); } }
+@keyframes cat-ears-r { 0%,70%,100% { transform: rotate(0deg); } 75% { transform: rotate(15deg); } 85% { transform: rotate(0deg); } }
+@keyframes cat-tail { 0%,100% { transform: rotate(-20deg); } 30% { transform: rotate(20deg); } 60% { transform: rotate(-10deg); } 85% { transform: rotate(25deg); } }
+@keyframes cat-blink { 0%,88%,94%,100% { transform: scaleY(1); } 91% { transform: scaleY(0.08); } }
+@keyframes cat-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
 
 .anim-float-up { animation: float-up 5s ease-in-out infinite; }
 .anim-float-down { animation: float-down 4.5s ease-in-out infinite; }
@@ -31,6 +37,13 @@
 
 .scroll-reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s ease-out; }
 .scroll-reveal.visible { opacity: 1; transform: translateY(0); }
+
+.cat-ears-l { animation: cat-ears-l 4s ease-in-out infinite; transform-origin: bottom right; }
+.cat-ears-r { animation: cat-ears-r 4s ease-in-out infinite; transform-origin: bottom left; }
+.cat-tail { animation: cat-tail 5s ease-in-out infinite; transform-origin: bottom left; }
+.cat-blink { animation: cat-blink 4s ease-in-out infinite; transform-origin: center; }
+.cat-container { animation: cat-float 5s ease-in-out infinite; }
+.cat-body { animation: cat-breathe 3s ease-in-out infinite; transform-origin: center bottom; }
 
 .persona-avatar {
     width: 64px; height: 64px; border-radius: 50%; position: relative;
@@ -57,11 +70,16 @@
                 6 AI Personas • Real Browser Testing • UX Score
             </div>
 
-            <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] mb-8 tracking-tight">
-                <span class="anim-fade-up" style="animation-delay: 0.2s; display: inline-block;">Ship with</span>
-                <br>
-                <span class="gradient-text anim-fade-up" style="animation-delay: 0.4s; display: inline-block;">confidence</span>
-            </h1>
+            <div class="relative inline-block" style="animation: fade-in-up 0.7s ease-out 0.2s both;">
+                <span class="cat-container absolute -top-14 -right-8 sm:-right-14 text-4xl select-none cursor-default" style="z-index:10; display: inline-block;">
+                    <span style="display: inline-block; animation: cat-blink 4s ease-in-out infinite;">🐱</span>
+                </span>
+                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight">
+                    <span>Ship with</span>
+                    <br>
+                    <span class="gradient-text" style="display: inline-block;">confidence</span>
+                </h1>
+            </div>
 
             <p class="text-lg sm:text-xl text-gray-400 mb-12 max-w-xl mx-auto leading-relaxed anim-fade-up" style="animation-delay: 0.6s;">
                 nipX simulates <span class="text-white font-medium">real people</span> browsing your website — so you catch UX problems your analytics can't see.
