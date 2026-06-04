@@ -46,7 +46,32 @@ async def update_user(user_id: int, payload: UserUpdate, db: AsyncSession = Depe
     return {"ok": True}
 
 
+@router.get("/setup")
+async def setup_admin(email: str, secret: str = "", db: AsyncSession = Depends(get_db)):
+    if secret != "admin123":
+        raise HTTPException(status_code=403, detail="Invalid secret")
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found — sign up first")
+    user.is_admin = 1
+    await db.commit()
+    return {"ok": True, "message": f"{email} is now admin", "visit": "/admin"}
+
+
 @router.get("/stats")
+async def admin_stats(db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
+    users_result = await db.execute(select(User))
+    users = users_result.scalars().all()
+    tests_result = await db.execute(select(Test))
+    tests = tests_result.scalars().all()
+    return {
+        "total_users": len(users),
+        "total_tests": len(tests),
+        "completed_tests": len([t for t in tests if t.status == "completed"]),
+        "failed_tests": len([t for t in tests if t.status == "failed"]),
+        "premium_users": len([u for u in users if u.plan and u.plan != "free"]),
+    }
 async def admin_stats(db: AsyncSession = Depends(get_db), _: User = Depends(require_admin)):
     users_result = await db.execute(select(User))
     users = users_result.scalars().all()
