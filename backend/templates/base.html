@@ -31,6 +31,7 @@
                 <div class="flex items-center space-x-1">
                     <a href="/" class="px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all">Home</a>
                     <a href="/dashboard" class="px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all">Dashboard</a>
+                    <a href="/admin" id="admin-link" class="px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all hidden">Admin</a>
                     <div id="auth-nav" class="flex items-center space-x-1 ml-2">
                         <a href="/login" class="px-4 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all">Log In</a>
                         <a href="/signup" class="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-all shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30">Sign Up</a>
@@ -59,6 +60,7 @@
                 un.classList.add('flex');
                 document.getElementById('user-email').textContent = user.email;
                 document.getElementById('credit-badge').textContent = (user.credits || 0) + ' credits';
+                if (user.is_admin) document.getElementById('admin-link').classList.remove('hidden');
             } catch(e) {}
         }
         document.getElementById('logout-btn')?.addEventListener('click', () => {

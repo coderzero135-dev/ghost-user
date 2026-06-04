@@ -9,6 +9,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password_hash = Column(String, nullable=True)
     credits = Column(Integer, default=3)
+    is_admin = Column(Integer, default=0)
+    plan = Column(String, default="free")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     tests = relationship("Test", back_populates="user")
 

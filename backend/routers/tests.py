@@ -160,16 +160,51 @@ async def create_test(
 
 @router.get("", response_model=list[TestResponse])
 async def list_tests(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
-    query = select(Test)
+    from sqlalchemy.orm import selectinload
+    query = select(Test).options(selectinload(Test.ux_score), selectinload(Test.issues))
     if user:
         query = query.where(Test.user_id == user.id)
-    query = query.order_by(Test.created_at.desc()).limit(20)
+    query = query.order_by(Test.created_at.desc()).limit(50)
     result = await db.execute(query)
     tests = result.scalars().all()
     return [TestResponse(
         id=t.id, url=t.url, status=t.status,
-        created_at=t.created_at, completed_at=t.completed_at
+        created_at=t.created_at, completed_at=t.completed_at,
+        overall_score=t.ux_score.overall_score if t.ux_score else None,
+        issue_count=len(t.issues) if t.issues else 0,
     ) for t in tests]
+
+
+@router.get("/stats")
+async def get_stats(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    query = select(Test).where(Test.user_id == user.id) if user else select(Test)
+    result = await db.execute(query)
+    tests = result.scalars().all()
+    total = len(tests)
+    completed = [t for t in tests if t.status == "completed"]
+    ux_query = select(UXScore).where(UXScore.test_id.in_([t.id for t in completed]))
+    ux_result = await db.execute(ux_query)
+    scores = [s.overall_score for s in ux_result.scalars().all()]
+    return {
+        "total_tests": total,
+        "running": len([t for t in tests if t.status == "running"]),
+        "completed": len(completed),
+        "failed": len([t for t in tests if t.status == "failed"]),
+        "avg_score": round(sum(scores) / len(scores), 1) if scores else None,
+        "best_score": round(max(scores), 1) if scores else None,
+    }
+
+
+@router.delete("/{test_id}")
+async def delete_test(test_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    test = await db.get(Test, test_id)
+    if not test:
+        raise HTTPException(status_code=404, detail="Test not found")
+    if user and test.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your test")
+    await db.delete(test)
+    await db.commit()
+    return {"ok": True}
 
 
 @router.get("/{test_id}", response_model=TestDetailResponse)

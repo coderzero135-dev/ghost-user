@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight">Admin</h1>
+            <p class="text-gray-400 text-sm mt-1">Manage users, credits & plans</p>
+        </div>
+        <a href="/dashboard" class="text-sm text-gray-400 hover:text-white transition-colors">← Dashboard</a>
+    </div>
+
+    <div id="admin-guard" class="text-center py-20">
+        <div class="animate-spin text-2xl mb-3 inline-block">⏳</div>
+        <p class="text-sm text-gray-500">Verifying access...</p>
+    </div>
+
+    <div id="admin-content" style="display:none">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8" id="stats-cards">
+            <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Users</div><div class="text-2xl font-bold" id="stat-users">-</div></div>
+            <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Tests</div><div class="text-2xl font-bold" id="stat-tests">-</div></div>
+            <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Completed</div><div class="text-2xl font-bold text-green-400" id="stat-completed">-</div></div>
+            <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Failed</div><div class="text-2xl font-bold text-red-400" id="stat-failed">-</div></div>
+            <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Premium</div><div class="text-2xl font-bold text-primary-400" id="stat-premium">-</div></div>
+        </div>
+
+        <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between flex-wrap gap-3">
+                <h2 class="font-semibold text-sm">All Users</h2>
+                <input type="text" id="search" placeholder="Filter by email..." class="px-3 py-1.5 text-sm bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 w-56">
+            </div>
+            <div id="users-table" class="divide-y divide-white/[0.04]"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+if (!token) { window.location.href = '/login'; throw new Error('not logged in'); }
+const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+
+let allUsers = [];
+
+async function init() {
+    const guard = document.getElementById('admin-guard');
+    const content = document.getElementById('admin-content');
+    try {
+        const [usersRes, statsRes] = await Promise.all([
+            fetch('/api/admin/users', { headers }),
+            fetch('/api/admin/stats', { headers }),
+        ]);
+        if (usersRes.status === 403) {
+            guard.innerHTML = '<div class="text-center py-20"><p class="text-red-400 font-medium">Access denied</p><p class="text-gray-500 text-sm mt-2">Admin access required</p><a href="/" class="text-primary-400 text-sm mt-4 inline-block">Go home</a></div>';
+            return;
+        }
+        allUsers = await usersRes.json();
+        const stats = await statsRes.json();
+        guard.style.display = 'none';
+        content.style.display = 'block';
+        document.getElementById('stat-users').textContent = stats.total_users;
+        document.getElementById('stat-tests').textContent = stats.total_tests;
+        document.getElementById('stat-completed').textContent = stats.completed_tests;
+        document.getElementById('stat-failed').textContent = stats.failed_tests;
+        document.getElementById('stat-premium').textContent = stats.premium_users;
+        render();
+    } catch (e) {
+        guard.innerHTML = '<div class="text-center py-20"><p class="text-red-400">Failed to load</p><p class="text-gray-500 text-sm mt-2">' + e.message + '</p></div>';
+    }
+}
+
+function render() {
+    const search = (document.getElementById('search').value || '').toLowerCase();
+    const users = allUsers.filter(u => u.email.toLowerCase().includes(search));
+    const planBadge = (p) => {
+        if (p === 'pro') return '<span class="text-xs px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-300 font-medium">Pro</span>';
+        if (p === 'agency') return '<span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 font-medium">Agency</span>';
+        return '<span class="text-xs px-2 py-0.5 rounded-full bg-white/[0.04] text-gray-500">Free</span>';
+    };
+    document.getElementById('users-table').innerHTML = users.length === 0
+        ? '<div class="text-center py-12 text-gray-500 text-sm">No users found</div>'
+        : users.map(u => `
+        <div class="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors flex-wrap">
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium truncate">${u.email}</p>
+                <p class="text-xs text-gray-500">${new Date(u.created_at).toLocaleDateString()}</p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                ${planBadge(u.plan)}
+                ${u.is_admin ? '<span class="text-xs text-primary-400 font-medium">Admin</span>' : ''}
+                <div class="flex items-center bg-white/[0.04] rounded-lg">
+                    <button onclick="adjust(${u.id}, ${u.credits - 1})" class="px-2 py-1 text-gray-500 hover:text-white text-sm transition-colors" title="Remove credit">−</button>
+                    <span class="text-sm font-bold w-7 text-center">${u.credits}</span>
+                    <button onclick="adjust(${u.id}, ${u.credits + 1})" class="px-2 py-1 text-gray-500 hover:text-white text-sm transition-colors" title="Add credit">+</button>
+                </div>
+                <select onchange="changePlan(${u.id}, this.value)" class="text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white focus:outline-none focus:border-primary-500">
+                    <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Free</option>
+                    <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro (₹999)</option>
+                    <option value="agency" ${u.plan === 'agency' ? 'selected' : ''}>Agency (₹4,999)</option>
+                </select>
+            </div>
+        </div>`).join('');
+}
+
+async function adjust(id, credits) {
+    await fetch('/api/admin/users/' + id, { method: 'PUT', headers, body: JSON.stringify({ credits }) });
+    const user = allUsers.find(u => u.id === id);
+    if (user) user.credits = credits;
+    render();
+}
+
+async function changePlan(id, plan) {
+    const body = { plan };
+    if (plan === 'pro') body.credits = 30;
+    else if (plan === 'agency') body.credits = 999;
+    await fetch('/api/admin/users/' + id, { method: 'PUT', headers, body: JSON.stringify(body) });
+    const user = allUsers.find(u => u.id === id);
+    if (user) { user.plan = plan; if (body.credits) user.credits = body.credits; }
+    render();
+}
+
+document.getElementById('search').addEventListener('input', render);
+
+init();
+</script>
+{% endblock %}

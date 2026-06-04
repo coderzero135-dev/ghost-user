@@ -8,6 +8,7 @@ import jinja2
 from backend.database import init_db
 from backend.routers.tests import router as tests_router
 from backend.routers.auth import router as auth_router
+from backend.routers.admin import router as admin_router
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
@@ -35,6 +36,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 app.include_router(auth_router)
 app.include_router(tests_router)
+app.include_router(admin_router)
 
 @app.get("/")
 async def landing(request: Request):
@@ -55,3 +57,7 @@ async def login_page(request: Request):
 @app.get("/signup")
 async def signup_page(request: Request):
     return render("signup.html", request=request)
+
+@app.get("/admin")
+async def admin_page(request: Request):
+    return render("admin.html", request=request)

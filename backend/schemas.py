@@ -11,6 +11,8 @@ class TestResponse(BaseModel):
     status: str
     created_at: datetime
     completed_at: Optional[datetime] = None
+    overall_score: Optional[float] = None
+    issue_count: int = 0
 
     class Config:
         from_attributes = True

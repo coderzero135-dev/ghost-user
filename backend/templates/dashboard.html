@@ -2,76 +2,143 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="flex items-center justify-between mb-10">
+    <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p class="text-gray-400 text-sm mt-1">Your website tests and results</p>
+            <p class="text-gray-400 text-sm mt-1">Your UX test history</p>
         </div>
         <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30">
-            <span>+</span> New Test
+            + New Test
         </a>
     </div>
+
+    <div id="stats-cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Tests run</div><div class="text-2xl font-bold" id="stat-total">-</div></div>
+        <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Avg UX score</div><div class="text-2xl font-bold" id="stat-score">-</div></div>
+        <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Completed</div><div class="text-2xl font-bold text-green-400" id="stat-complete">-</div></div>
+        <div class="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4"><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Failed</div><div class="text-2xl font-bold text-red-400" id="stat-failed">-</div></div>
+    </div>
+
+    <div class="flex items-center gap-2 mb-6" id="filter-bar" style="display:none;">
+        <button data-filter="all" class="filter-btn px-4 py-1.5 text-sm rounded-lg bg-primary-500/20 text-primary-300 font-medium">All</button>
+        <button data-filter="completed" class="filter-btn px-4 py-1.5 text-sm rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">Completed</button>
+        <button data-filter="running" class="filter-btn px-4 py-1.5 text-sm rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">Running</button>
+        <button data-filter="failed" class="filter-btn px-4 py-1.5 text-sm rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">Failed</button>
+    </div>
+
     <div id="tests-container" class="space-y-3">
         <div class="text-center py-20 text-gray-500">
-            <div class="animate-spin text-3xl mb-4 inline-block">⏳</div>
+            <div class="animate-spin text-2xl mb-3 inline-block">⏳</div>
             <p class="text-sm">Loading your tests...</p>
         </div>
     </div>
 </div>
 
 <script>
+let allTests = [];
+let currentFilter = 'all';
+
 async function loadDashboard() {
     const container = document.getElementById('tests-container');
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch('/api/tests', {
-            headers: token ? { 'Authorization': 'Bearer ' + token } : {}
-        });
-        if (res.status === 401) { window.location.href = '/login'; return; }
-        const tests = await res.json();
-        if (tests.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-20">
-                    <div class="w-16 h-16 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-6">
-                        <span class="text-3xl">🔍</span>
-                    </div>
-                    <h2 class="text-xl font-semibold mb-2">No tests yet</h2>
-                    <p class="text-gray-400 text-sm mb-6">Run your first test to see how users experience your site</p>
-                    <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-primary-600/20">Run your first test →</a>
-                </div>`;
-            return;
-        }
-        const statusConfig = {
-            pending: { color: 'text-amber-400', bg: 'bg-amber-500/10', dot: 'bg-amber-400' },
-            queued: { color: 'text-blue-400', bg: 'bg-blue-500/10', dot: 'bg-blue-400' },
-            running: { color: 'text-purple-400', bg: 'bg-purple-500/10', dot: 'bg-purple-400 animate-pulse' },
-            completed: { color: 'text-green-400', bg: 'bg-green-500/10', dot: 'bg-green-400' },
-            failed: { color: 'text-red-400', bg: 'bg-red-500/10', dot: 'bg-red-400' }
-        };
-        container.innerHTML = tests.map(t => {
-            const s = statusConfig[t.status] || statusConfig.pending;
-            return `
-            <a href="/test/${t.id}" class="card-hover flex items-center justify-between bg-white/[0.03] border border-white/[0.06] rounded-xl px-5 py-4 hover:border-primary-500/20 group">
-                <div class="flex items-center gap-4 min-w-0">
-                    <div class="w-10 h-10 rounded-lg bg-white/[0.03] flex items-center justify-center text-lg shrink-0">🌐</div>
-                    <div class="min-w-0">
-                        <p class="font-medium text-sm truncate group-hover:text-white transition-colors">${t.url}</p>
-                        <p class="text-xs text-gray-500 mt-0.5">${new Date(t.created_at).toLocaleString()}</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3 shrink-0 ml-4">
-                    <span class="inline-flex items-center gap-1.5 text-xs ${s.color} ${s.bg} px-2 py-1 rounded-full">
-                        <span class="w-1.5 h-1.5 rounded-full ${s.dot}"></span>
-                        ${t.status}
-                    </span>
-                    <span class="text-gray-600 group-hover:text-gray-400 transition-colors">→</span>
-                </div>
-            </a>`;
-        }).join('');
+        const [testsRes, statsRes] = await Promise.all([
+            fetch('/api/tests', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} }),
+            fetch('/api/tests/stats', { headers: token ? { 'Authorization': 'Bearer ' + token } : {} }),
+        ]);
+        if (testsRes.status === 401) { window.location.href = '/login'; return; }
+        allTests = await testsRes.json();
+        const stats = await statsRes.json();
+
+        document.getElementById('stat-total').textContent = stats.total_tests || 0;
+        document.getElementById('stat-score').textContent = stats.avg_score ? stats.avg_score + '/100' : '--';
+        document.getElementById('stat-complete').textContent = stats.completed || 0;
+        document.getElementById('stat-failed').textContent = stats.failed || 0;
+        document.getElementById('stat-score').className = 'text-2xl font-bold ' + (stats.avg_score >= 80 ? 'text-green-400' : stats.avg_score >= 60 ? 'text-yellow-400' : stats.avg_score ? 'text-orange-400' : '');
+
+        if (allTests.length > 0) document.getElementById('filter-bar').style.display = 'flex';
+        renderTests();
     } catch (err) {
         container.innerHTML = `<div class="text-center py-20 text-red-400 text-sm">Failed to load: ${err.message}</div>`;
     }
 }
+
+function renderTests() {
+    const container = document.getElementById('tests-container');
+    let tests = currentFilter === 'all' ? allTests : allTests.filter(t => t.status === currentFilter);
+
+    if (allTests.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-20">
+                <div class="w-16 h-16 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-6"><span class="text-3xl">🔍</span></div>
+                <h2 class="text-xl font-semibold mb-2">No tests yet</h2>
+                <p class="text-gray-400 text-sm mb-6">Run your first UX test to see how users experience your site</p>
+                <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-primary-600/20">Run your first test →</a>
+            </div>`;
+        return;
+    }
+    if (tests.length === 0) {
+        container.innerHTML = `<div class="text-center py-16 text-gray-500 text-sm">No ${currentFilter} tests found</div>`;
+        return;
+    }
+
+    const statusCfg = {
+        completed: { dot: 'bg-green-400', bg: 'bg-green-500/10', text: 'text-green-400' },
+        running: { dot: 'bg-purple-400 animate-pulse', bg: 'bg-purple-500/10', text: 'text-purple-400' },
+        queued: { dot: 'bg-blue-400', bg: 'bg-blue-500/10', text: 'text-blue-400' },
+        pending: { dot: 'bg-amber-400', bg: 'bg-amber-500/10', text: 'text-amber-400' },
+        failed: { dot: 'bg-red-400', bg: 'bg-red-500/10', text: 'text-red-400' },
+    };
+    const scoreColor = (s) => s >= 80 ? 'text-green-400' : s >= 60 ? 'text-yellow-400' : s >= 40 ? 'text-orange-400' : 'text-red-400';
+
+    container.innerHTML = tests.map(t => {
+        const s = statusCfg[t.status] || statusCfg.pending;
+        return `
+        <div class="card-hover bg-white/[0.03] border border-white/[0.06] rounded-xl px-5 py-4 hover:border-white/10 group relative" data-test-id="${t.id}">
+            <div class="flex items-center gap-4">
+                <a href="/test/${t.id}" class="flex items-center gap-4 flex-1 min-w-0 text-left">
+                    <div class="w-10 h-10 rounded-lg bg-white/[0.03] flex items-center justify-center text-lg shrink-0">🌐</div>
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium text-sm truncate">${t.url}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">${new Date(t.created_at).toLocaleString('en-IN', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
+                    </div>
+                </a>
+                <div class="flex items-center gap-3 shrink-0">
+                    ${t.overall_score != null ? `<span class="text-sm font-bold ${scoreColor(t.overall_score)}">${Math.round(t.overall_score)}/100</span>` : ''}
+                    ${t.issue_count > 0 ? `<span class="text-xs text-yellow-400">${t.issue_count} issues</span>` : ''}
+                    <span class="inline-flex items-center gap-1.5 text-xs ${s.text} ${s.bg} px-2 py-1 rounded-full">
+                        <span class="w-1.5 h-1.5 rounded-full ${s.dot}"></span>${t.status}
+                    </span>
+                    <button onclick="deleteTest(${t.id})" class="text-gray-700 hover:text-red-400 transition-colors p-1 opacity-0 group-hover:opacity-100" title="Delete">&times;</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function deleteTest(id) {
+    if (!confirm('Delete this test permanently?')) return;
+    const token = localStorage.getItem('token');
+    await fetch(`/api/tests/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    allTests = allTests.filter(t => t.id !== id);
+    renderTests();
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        currentFilter = btn.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.className = b.dataset.filter === currentFilter
+                ? 'px-4 py-1.5 text-sm rounded-lg bg-primary-500/20 text-primary-300 font-medium'
+                : 'px-4 py-1.5 text-sm rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all';
+        });
+        renderTests();
+    });
+});
+
 loadDashboard();
 </script>
 {% endblock %}

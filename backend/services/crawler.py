@@ -5,7 +5,7 @@ import time
 import uuid
 from datetime import datetime
 from playwright.async_api import async_playwright
-from backend.services.personas import get_persona, PERSONAS
+from backend.services.personas import get_persona, PERSONAS, INTENT_PATTERNS
 from backend.config import SCREENSHOTS_DIR, VIDEOS_DIR
 
 _SELECTOR_LABELS = {
@@ -68,6 +68,106 @@ def _human_issue(selectors, persona_name):
     persona = _PERSONA_LABELS.get(persona_name, persona_name)
     return f"{persona} expected to find: {desc}"
 
+
+def _collect_console(msg, collector):
+    if msg.type in ("error", "warning"):
+        collector.append({"type": msg.type, "text": msg.text[:300], "url": msg.location.get("url", "") if hasattr(msg, "location") else ""})
+
+
+async def _intent_click(page, intent):
+    patterns = INTENT_PATTERNS.get(intent, [])
+    if not patterns:
+        return None
+    try:
+        elements = await page.evaluate("""(patterns) => {
+            const results = [];
+            const clickables = document.querySelectorAll('a, button, [role="button"], [role="link"], .btn, .button');
+            clickables.forEach((el, idx) => {
+                if (el.offsetParent === null) return;
+                if (idx > 100) return;
+                const text = (el.textContent || '').trim().toLowerCase();
+                const href = (el.getAttribute('href') || '').toLowerCase();
+                const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+                const title = (el.getAttribute('title') || '').toLowerCase();
+                const cls = (el.className || '').toLowerCase();
+                const combined = text + ' ' + href + ' ' + aria + ' ' + title + ' ' + cls;
+                results.push({text: combined.substring(0, 200), idx});
+            });
+            return results;
+        }""", patterns)
+        if not elements:
+            return None
+        best = None
+        best_score = 0
+        for el in elements:
+            score = 0
+            for pattern in patterns:
+                if pattern in el["text"]:
+                    score += len(pattern) * 2
+                    if el["text"].startswith(pattern):
+                        score += 5
+                    if "button" in el["text"] and ("sign" in pattern or "get" in pattern or "start" in pattern or "join" in pattern):
+                        score += 3
+                    if el["text"] == pattern:
+                        score += 10
+            if score > best_score:
+                best_score = score
+                best = el
+        if best and best_score >= 3:
+            el = await page.query_selector(f"a:nth-of-type({best['idx'] + 1}), button:nth-of-type({best['idx'] + 1})")
+            if not el:
+                all_el = await page.query_selector_all("a, button, [role='button'], [role='link']")
+                if best["idx"] < len(all_el):
+                    el = all_el[best["idx"]]
+            if el:
+                await el.scroll_into_view_if_needed()
+                await asyncio.sleep(0.3)
+                await el.click()
+                return patterns[0] if patterns else str(best_score)
+        return None
+    except:
+        return None
+
+
+def _intent_label(intent):
+    labels = {
+        "signup": "a sign up or register button",
+        "pricing": "a pricing or plans page link",
+        "features": "a features or how-it-works link",
+        "help": "a help or support link",
+        "contact": "a contact page link",
+        "about": "an about page link",
+        "blog": "a blog or news link",
+        "testimonials": "testimonials or customer reviews",
+        "faq": "an FAQ or questions link",
+        "home": "a home page link",
+        "login": "a login or sign in link",
+        "docs": "documentation or API docs",
+        "cta": "a call-to-action button",
+    }
+    return labels.get(intent, f"a {intent} link")
+
+
+async def _get_perf_metrics(page):
+    try:
+        metrics = await page.evaluate("""() => {
+            const p = performance.getEntriesByType('navigation')[0];
+            const ttfb = p ? (p.responseStart - p.requestStart) : 0;
+            const dcl = p ? (p.domContentLoadedEventEnd - p.startTime) : 0;
+            const l = performance.getEntriesByType('resource');
+            let total = 0, count = 0;
+            l.forEach(r => { if (r.transferSize > 0) { total += r.transferSize; count++; } });
+            return {
+                ttfb_ms: Math.round(ttfb),
+                dom_ready_ms: Math.round(dcl),
+                resources_count: count,
+                resources_kb: Math.round(total / 1024),
+            };
+        }""")
+        return metrics
+    except:
+        return None
+
 def _human_action(action_type, error):
     labels = {
         "navigate": "page navigation (page may be slow or unreachable)",
@@ -76,6 +176,7 @@ def _human_action(action_type, error):
         "go_back": "going back to the previous page",
         "fill_first": "filling in a form field (field may be missing or hidden)",
         "click_random_nonlink": "clicking a non-interactive element",
+        "find_and_click": "scanning the page for a relevant link (target may be absent or ambiguously labeled)",
     }
     return labels.get(action_type, action_type)
 
@@ -91,6 +192,8 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
     navigation_path = []
     load_times = {}
     issues_found = []
+    console_errors = []
+    max_scroll_pct = 0
     step = 0
 
     try:
@@ -117,6 +220,8 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
             context = await browser.new_context(**context_options)
             page = await context.new_page()
 
+            page.on("console", lambda msg: _collect_console(msg, console_errors))
+
             if persona.get("slow_mo"):
                 page.set_default_timeout(30000)
 
@@ -135,6 +240,9 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
                         await page.goto(full_url, wait_until="domcontentloaded", timeout=15000)
                         nav_end = time.time()
                         load_times[f"step_{step}_load"] = round(nav_end - nav_start, 2)
+                        perf = await _get_perf_metrics(page)
+                        if perf:
+                            load_times[f"step_{step}_perf"] = perf
                         navigation_path.append({"step": step, "action": "navigate", "url": full_url})
                         await asyncio.sleep(min(wait_time / 1000, 2))
 
@@ -147,29 +255,26 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
                             await page.evaluate(f"window.scrollBy(0, {amount})")
                         else:
                             await page.evaluate(f"window.scrollBy(0, -{amount})")
+                        try:
+                            scroll_pct = await page.evaluate("Math.round((window.scrollY + window.innerHeight) / document.body.scrollHeight * 100)")
+                            if scroll_pct > max_scroll_pct:
+                                max_scroll_pct = scroll_pct
+                        except:
+                            pass
                         navigation_path.append({"step": step, "action": f"scroll_{direction}", "amount": amount})
                         await asyncio.sleep(min(wait_time / 1000, 1.5))
 
-                    elif action_type == "click_first":
-                        selectors = action.get("selectors", [])
-                        clicked = False
-                        for selector in selectors:
-                            try:
-                                el = await page.wait_for_selector(selector, timeout=3000)
-                                if el:
-                                    await el.scroll_into_view_if_needed()
-                                    await asyncio.sleep(0.3)
-                                    await el.click()
-                                    clicked = True
-                                    navigation_path.append({"step": step, "action": "click", "selector": selector})
-                                    break
-                            except:
-                                continue
-                        if not clicked:
-                            navigation_path.append({"step": step, "action": "click_failed", "selectors": selectors})
+                    elif action_type == "find_and_click":
+                        intent = action.get("intent", "")
+                        clicked = await _intent_click(page, intent)
+                        if clicked:
+                            navigation_path.append({"step": step, "action": "click", "intent": intent, "element": clicked})
+                        else:
+                            navigation_path.append({"step": step, "action": "click_failed", "intent": intent})
+                            label = _intent_label(intent)
                             issues_found.append({
                                 "type": "missing_element",
-                                "description": _human_issue(selectors, persona_name),
+                                "description": f"{_PERSONA_LABELS.get(persona_name, persona_name)} could not find {label} on the page",
                                 "severity": "medium"
                             })
                         await asyncio.sleep(min(wait_time / 1000, 2))
@@ -237,19 +342,30 @@ async def run_persona_test(test_id: int, base_url: str, persona_name: str, updat
             except:
                 pass
 
+            for cerr in console_errors:
+                issues_found.append({
+                    "type": f"console_{cerr['type']}",
+                    "description": f"Browser {cerr['type']}: {cerr['text']}",
+                    "severity": "high" if cerr["type"] == "error" else "low",
+                    "element": cerr.get("url", ""),
+                })
+
             analysis = {
                 "pages_visited": len(set(p.get("url", "") for p in navigation_path if "url" in p)),
                 "actions_performed": len(navigation_path),
                 "load_times": load_times,
                 "issues_detected": issues_found,
                 "screenshot_count": len(screenshots),
+                "scroll_depth_pct": max_scroll_pct,
+                "console_errors": len([c for c in console_errors if c["type"] == "error"]),
+                "console_warnings": len([c for c in console_errors if c["type"] == "warning"]),
             }
 
             status = "completed" if screenshots else "failed"
             await update_callback(test_id, persona_name, {
                 "status": status,
                 "screenshot_paths": screenshots,
-                "video_path": video_path,
+                "video_path": None,
                 "navigation_path": navigation_path,
                 "issues_found": issues_found,
                 "load_times": load_times,
