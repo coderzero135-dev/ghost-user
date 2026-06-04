@@ -20,17 +20,27 @@ async def require_admin(user: User = Depends(get_current_user)):
     return user
 
 
-@router.get("/setup")
-async def setup_admin(email: str, secret: str = "", db: AsyncSession = Depends(get_db)):
-    if secret != "admin123":
+class SetupRequest(BaseModel):
+    email: str
+    secret: str = ""
+
+
+@router.post("/setup")
+async def setup_admin(req: SetupRequest, db: AsyncSession = Depends(get_db)):
+    if req.secret != "admin123":
         raise HTTPException(status_code=403, detail="Invalid secret")
-    result = await db.execute(select(User).where(User.email == email))
+    result = await db.execute(select(User).where(User.email == req.email))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found - sign up first")
     user.is_admin = 1
     await db.commit()
-    return {"ok": True, "message": f"{email} is now admin"}
+    return {"ok": True, "message": f"{req.email} is now admin"}
+
+
+@router.get("/setup")
+async def setup_admin_get(email: str, secret: str = "", db: AsyncSession = Depends(get_db)):
+    return await setup_admin(SetupRequest(email=email, secret=secret), db)
 
 
 @router.get("/stats")
