@@ -1,26 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Login{% endblock %}
 {% block content %}
-<div class="max-w-md mx-auto px-4 py-20">
-    <div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-8">
+<div class="max-w-md mx-auto px-4 py-24">
+    <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
         <div class="text-center mb-8">
-            <span class="text-4xl">👻</span>
-            <h1 class="text-2xl font-bold mt-2">Welcome back</h1>
+            <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-5">
+                <span class="text-2xl">👻</span>
+            </div>
+            <h1 class="text-2xl font-bold mb-2 tracking-tight">Welcome back</h1>
             <p class="text-gray-400 text-sm">Log in to your Ghost User account</p>
         </div>
         <form id="login-form" class="space-y-4">
             <div>
-                <label class="text-sm text-gray-400 block mb-1">Email</label>
-                <input type="email" id="email" required class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-ghost-500">
+                <label class="text-sm font-medium text-gray-300 block mb-1.5">Email</label>
+                <input type="email" id="email" required autocomplete="email" placeholder="you@example.com" class="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-sm">
             </div>
             <div>
-                <label class="text-sm text-gray-400 block mb-1">Password</label>
-                <input type="password" id="password" required minlength="6" class="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-ghost-500">
+                <label class="text-sm font-medium text-gray-300 block mb-1.5">Password</label>
+                <input type="password" id="password" required minlength="6" autocomplete="current-password" placeholder="••••••" class="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all text-sm">
             </div>
-            <button type="submit" class="w-full py-2.5 bg-ghost-600 hover:bg-ghost-500 text-white font-semibold rounded-lg transition-all">Log In</button>
+            <button type="submit" class="w-full py-3 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30 active:scale-[0.98]">Log In</button>
             <p id="login-error" class="text-red-400 text-sm text-center hidden"></p>
         </form>
-        <p class="text-center text-sm text-gray-500 mt-6">Don't have an account? <a href="/signup" class="text-ghost-400 hover:text-ghost-300">Sign up</a></p>
+        <p class="text-center text-sm text-gray-500 mt-6">Don't have an account? <a href="/signup" class="text-primary-400 hover:text-primary-300 font-medium transition-colors">Sign up</a></p>
     </div>
 </div>
 <script>
@@ -37,7 +39,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             body: JSON.stringify({email, password})
         });
         const data = await res.json();
-        if (!res.ok) { err.textContent = data.detail || 'Login failed'; err.classList.remove('hidden'); return; }
+        if (!res.ok) { err.textContent = data.detail || 'Invalid credentials'; err.classList.remove('hidden'); return; }
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         window.location.href = '/dashboard';

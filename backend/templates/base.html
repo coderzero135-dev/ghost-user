@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ghost User - {% block title %}Test Your Website with AI Personas{% endblock %}</title>
+    <title>{% block title %}Test Your Website with AI Personas{% endblock %} | Ghost User</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -11,8 +11,9 @@
             theme: {
                 extend: {
                     colors: {
-                        ghost: { 50: '#f0f0ff', 100: '#e0e0ff', 200: '#c0c0ff', 300: '#a0a0ff', 400: '#8080ff', 500: '#6b5bff', 600: '#5a4ae0', 700: '#4a3ac0', 800: '#3a2aa0', 900: '#2a1a80' }
-                    }
+                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' }
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
                 }
             }
         }
@@ -20,31 +21,33 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👻</text></svg>">
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen">
-    <nav class="border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
+<body class="bg-gray-950 text-gray-100 min-h-screen antialiased">
+    <nav class="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-gray-950/80 backdrop-blur-xl">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <a href="/" class="flex items-center space-x-2">
-                    <span class="text-2xl">👻</span>
-                    <span class="text-xl font-bold bg-gradient-to-r from-ghost-400 to-purple-400 bg-clip-text text-transparent">Ghost User</span>
-                </a>
-                <div class="flex items-center space-x-4">
-                    <a href="/" class="text-gray-300 hover:text-white text-sm">Home</a>
-                    <a href="/dashboard" class="text-gray-300 hover:text-white text-sm">Dashboard</a>
-                    <div id="auth-nav">
-                        <a href="/login" class="text-gray-300 hover:text-white text-sm">Log In</a>
-                        <a href="/signup" class="bg-ghost-600 hover:bg-ghost-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all ml-2">Sign Up</a>
+                <a href="/" class="flex items-center space-x-3 group">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-purple-500 flex items-center justify-center text-lg shadow-lg shadow-primary-500/20 group-hover:shadow-primary-500/30 transition-all">
+                        👻
                     </div>
-                    <div id="user-nav" class="hidden items-center space-x-3">
-                        <span id="credit-badge" class="text-xs bg-ghost-900/50 border border-ghost-700/50 px-2 py-1 rounded-full text-ghost-300"></span>
-                        <span id="user-email" class="text-sm text-gray-400"></span>
-                        <button id="logout-btn" class="text-sm text-gray-500 hover:text-gray-300">Logout</button>
+                    <span class="text-lg font-bold gradient-text tracking-tight">Ghost User</span>
+                </a>
+                <div class="flex items-center space-x-1">
+                    <a href="/" class="px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all">Home</a>
+                    <a href="/dashboard" class="px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all">Dashboard</a>
+                    <div id="auth-nav" class="flex items-center space-x-1 ml-2">
+                        <a href="/login" class="px-4 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-all">Log In</a>
+                        <a href="/signup" class="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-all shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30">Sign Up</a>
+                    </div>
+                    <div id="user-nav" class="hidden items-center space-x-3 ml-2">
+                        <span id="credit-badge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-500/10 text-primary-300 border border-primary-500/20"></span>
+                        <span id="user-email" class="text-sm text-gray-400 hidden sm:inline"></span>
+                        <button id="logout-btn" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-300 rounded-lg hover:bg-white/5 transition-all">Logout</button>
                     </div>
                 </div>
             </div>
         </div>
     </nav>
-    <main>{% block content %}{% endblock %}</main>
+    <main class="pt-16">{% block content %}{% endblock %}</main>
     <script src="/static/js/app.js"></script>
     <script>
     (function() {
@@ -56,8 +59,9 @@
                 document.getElementById('auth-nav').classList.add('hidden');
                 const un = document.getElementById('user-nav');
                 un.classList.remove('hidden');
+                un.classList.add('flex');
                 document.getElementById('user-email').textContent = user.email;
-                document.getElementById('credit-badge').textContent = user.credits + ' credits';
+                document.getElementById('credit-badge').textContent = (user.credits || 0) + ' credits';
             } catch(e) {}
         }
         document.getElementById('logout-btn')?.addEventListener('click', () => {

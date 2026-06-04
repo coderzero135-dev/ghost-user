@@ -1,15 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="flex items-center justify-between mb-8">
-        <h1 class="text-3xl font-bold">Dashboard</h1>
-        <a href="/" class="bg-ghost-600 hover:bg-ghost-500 px-5 py-2.5 rounded-xl text-sm font-medium transition-all">+ New Test</a>
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex items-center justify-between mb-10">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p class="text-gray-400 text-sm mt-1">Your website tests and results</p>
+        </div>
+        <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30">
+            <span>+</span> New Test
+        </a>
     </div>
-    <div id="tests-container" class="space-y-4">
+    <div id="tests-container" class="space-y-3">
         <div class="text-center py-20 text-gray-500">
-            <div class="text-4xl mb-4">👻</div>
-            <p class="text-lg">Loading your tests...</p>
+            <div class="animate-spin text-3xl mb-4 inline-block">⏳</div>
+            <p class="text-sm">Loading your tests...</p>
         </div>
     </div>
 </div>
@@ -26,34 +31,45 @@ async function loadDashboard() {
         const tests = await res.json();
         if (tests.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-20 text-gray-500">
-                    <div class="text-4xl mb-4">🔍</div>
-                    <p class="text-lg mb-2">No tests yet</p>
-                    <p class="text-sm text-gray-600">Run your first test to see results here</p>
+                <div class="text-center py-20">
+                    <div class="w-16 h-16 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-6">
+                        <span class="text-3xl">🔍</span>
+                    </div>
+                    <h2 class="text-xl font-semibold mb-2">No tests yet</h2>
+                    <p class="text-gray-400 text-sm mb-6">Run your first test to see how users experience your site</p>
+                    <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-xl transition-all shadow-lg shadow-primary-600/20">Run your first test →</a>
                 </div>`;
             return;
         }
+        const statusConfig = {
+            pending: { color: 'text-amber-400', bg: 'bg-amber-500/10', dot: 'bg-amber-400' },
+            queued: { color: 'text-blue-400', bg: 'bg-blue-500/10', dot: 'bg-blue-400' },
+            running: { color: 'text-purple-400', bg: 'bg-purple-500/10', dot: 'bg-purple-400 animate-pulse' },
+            completed: { color: 'text-green-400', bg: 'bg-green-500/10', dot: 'bg-green-400' },
+            failed: { color: 'text-red-400', bg: 'bg-red-500/10', dot: 'bg-red-400' }
+        };
         container.innerHTML = tests.map(t => {
-            const statusColors = { pending: 'text-yellow-400', queued: 'text-blue-400', running: 'text-purple-400', completed: 'text-green-400', failed: 'text-red-400' };
+            const s = statusConfig[t.status] || statusConfig.pending;
             return `
-            <a href="/test/${t.id}" class="block bg-gray-900/50 border border-gray-800 rounded-xl p-5 hover:border-gray-700 transition-all">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                        <span class="text-2xl">🌐</span>
-                        <div>
-                            <p class="font-medium">${t.url}</p>
-                            <p class="text-sm text-gray-500">${new Date(t.created_at).toLocaleString()}</p>
-                        </div>
+            <a href="/test/${t.id}" class="card-hover flex items-center justify-between bg-white/[0.03] border border-white/[0.06] rounded-xl px-5 py-4 hover:border-primary-500/20 group">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="w-10 h-10 rounded-lg bg-white/[0.03] flex items-center justify-center text-lg shrink-0">🌐</div>
+                    <div class="min-w-0">
+                        <p class="font-medium text-sm truncate group-hover:text-white transition-colors">${t.url}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">${new Date(t.created_at).toLocaleString()}</p>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm ${statusColors[t.status] || 'text-gray-400'} capitalize">${t.status}</span>
-                        <span class="text-gray-600">→</span>
-                    </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0 ml-4">
+                    <span class="inline-flex items-center gap-1.5 text-xs ${s.color} ${s.bg} px-2 py-1 rounded-full">
+                        <span class="w-1.5 h-1.5 rounded-full ${s.dot}"></span>
+                        ${t.status}
+                    </span>
+                    <span class="text-gray-600 group-hover:text-gray-400 transition-colors">→</span>
                 </div>
             </a>`;
         }).join('');
     } catch (err) {
-        container.innerHTML = `<div class="text-center py-20 text-red-400">Failed to load tests: ${err.message}</div>`;
+        container.innerHTML = `<div class="text-center py-20 text-red-400 text-sm">Failed to load: ${err.message}</div>`;
     }
 }
 loadDashboard();
