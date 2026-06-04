@@ -158,6 +158,32 @@ async def create_test(
     )
 
 
+@router.get("/{test_id}/progress")
+async def test_progress(test_id: int, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy.orm import selectinload
+    stmt = select(Test).where(Test.id == test_id).options(selectinload(Test.persona_results))
+    result = await db.execute(stmt)
+    test = result.scalar_one_or_none()
+    if not test:
+        raise HTTPException(status_code=404, detail="Test not found")
+    persona_progress = []
+    for pr in (test.persona_results or []):
+        persona_progress.append({
+            "persona_name": pr.persona_name,
+            "status": pr.status,
+            "screenshots_count": len(pr.screenshot_paths or []),
+            "issues_count": len(pr.issues_found or []),
+            "video_path": pr.video_path,
+        })
+    return {
+        "test_id": test.id,
+        "status": test.status,
+        "total_personas": 6,
+        "completed_personas": sum(1 for p in persona_progress if p["status"] == "completed"),
+        "persona_progress": persona_progress,
+    }
+
+
 @router.get("", response_model=list[TestResponse])
 async def list_tests(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
     from sqlalchemy.orm import selectinload

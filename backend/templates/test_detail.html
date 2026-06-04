@@ -103,22 +103,44 @@ async function loadTest() {
         const data = await res.json();
 
         if (data.status === 'queued' || data.status === 'pending' || data.status === 'running') {
+            const [progRes, detailRes] = await Promise.all([
+                fetch(`/api/tests/${testId}/progress`),
+                fetch(`/api/tests/${testId}`)
+            ]);
+            const prog = await progRes.json();
+            const detail = await detailRes.json();
+            const done = prog.completed_personas || 0;
+            const pct = Math.round((done / 6) * 100);
+            const labels = { first_time_customer: 'First-Time Visitor', confused_grandparent: 'Elderly Beginner', power_user: 'Power User', impatient_gamer: 'Speed Runner', mobile_user: 'Phone User', potential_buyer: 'Cautious Buyer' };
+            const emojis = { first_time_customer: '🧍', confused_grandparent: '🧑', power_user: '🧑‍💻', impatient_gamer: '🧑', mobile_user: '🤳', potential_buyer: '🧑' };
+
             container.innerHTML = `
-                <div class="text-center py-20">
-                    <div class="animate-spin text-5xl mb-6 inline-block">⏳</div>
-                    <h2 class="text-2xl font-bold mb-2">Testing ${data.url}</h2>
-                    <p class="text-gray-400">6 AI personas are exploring your site...</p>
-                    <div class="max-w-md mx-auto mt-8 space-y-2">
-                        ${['first_time_customer', 'confused_grandparent', 'power_user', 'impatient_gamer', 'mobile_user', 'potential_buyer'].map(p => {
-                            const pr = (data.persona_results || []).find(r => r.persona_name === p);
-                            const status = pr ? pr.status : 'pending';
-                            const icons = { completed: '✅', running: '⏳', pending: '⬜', failed: '❌' };
-                            const labels = { first_time_customer: 'First-Time Customer', confused_grandparent: 'Confused Grandparent', power_user: 'Power User', impatient_gamer: 'Impatient Gamer', mobile_user: 'Mobile User', potential_buyer: 'Potential Buyer' };
-                            return `<div class="flex items-center justify-between bg-gray-900/50 rounded-lg px-4 py-2"><span>${icons[status] || '⬜'} ${labels[p]}</span><span class="text-xs text-gray-500 capitalize">${status}</span></div>`;
-                        }).join('')}
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 mb-6">
+                        <div class="text-center mb-6">
+                            <h2 class="text-xl font-bold mb-1">Testing ${detail.url}</h2>
+                            <p class="text-sm text-gray-400">${done}/6 personas completed</p>
+                        </div>
+                        <div class="w-full bg-white/[0.04] rounded-full h-2.5 mb-6 overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-primary-500 to-purple-500 rounded-full transition-all duration-700" style="width:${pct}%"></div>
+                        </div>
+                        <div class="space-y-2">
+                            ${(prog.persona_progress || []).map(p => {
+                                const done = p.status === 'completed';
+                                const fail = p.status === 'failed';
+                                const icon = done ? '✅' : fail ? '❌' : '<span class="animate-spin inline-block">⏳</span>';
+                                return `
+                                <div class="flex items-center gap-3 px-3 py-2 rounded-lg ${done ? 'bg-green-500/5' : fail ? 'bg-red-500/5' : 'bg-white/[0.02]'}">
+                                    <span class="text-lg">${emojis[p.persona_name] || '👤'}</span>
+                                    <span class="flex-1 text-sm">${labels[p.persona_name] || p.persona_name}</span>
+                                    ${done ? `<span class="text-xs text-gray-500">${p.screenshots_count} screenshots</span>` : ''}
+                                    <span>${icon}</span>
+                                </div>`;
+                            }).join('')}
+                        </div>
                     </div>
                 </div>`;
-            setTimeout(loadTest, 3000);
+            setTimeout(loadTest, 2000);
             return;
         }
 
