@@ -218,7 +218,7 @@ async function loadTest() {
             html += `</div></div>`;
         }
 
-        html += `<div class="text-center pt-4"><a href="/dashboard" class="text-primary-400 hover:text-primary-300 text-sm">← Back to Dashboard</a></div>`;
+        html += `<div class="text-center pt-4 flex items-center justify-center gap-6"><a href="/dashboard" class="text-primary-400 hover:text-primary-300 text-sm">← Back to Dashboard</a><a href="/test/${testId}/report?print=1" target="_blank" class="text-sm text-gray-400 hover:text-white transition-colors">📥 Download PDF Report</a></div>`;
         container.innerHTML = html;
 
     } catch (err) {
