@@ -227,10 +227,19 @@
 <script>
 document.getElementById('test-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const url = document.getElementById('url-input').value;
+    const input = document.getElementById('url-input');
     const btn = e.target.querySelector('button');
+    let url = input.value.trim();
+
+    if (!url) return;
+    if (!url.includes('.')) { input.classList.add('border-red-500'); setTimeout(() => input.classList.remove('border-red-500'), 2000); return; }
+    if (!url.startsWith('http')) url = 'https://' + url;
+    input.value = url;
+
+    const original = btn.textContent;
     btn.textContent = 'Starting...';
     btn.disabled = true;
+
     const token = localStorage.getItem('token');
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -239,12 +248,14 @@ document.getElementById('test-form')?.addEventListener('submit', async (e) => {
         const data = await res.json();
         if (data.id) { window.location.href = `/test/${data.id}`; return; }
         if (res.status === 401) { window.location.href = '/login'; return; }
-        alert(data.detail || 'Could not start test');
+        if (res.status === 402) { window.location.href = '/signup?upgrade=1'; return; }
+        input.classList.add('border-red-500');
+        btn.textContent = data.detail || 'Error — try again';
+        setTimeout(() => { input.classList.remove('border-red-500'); btn.textContent = original; btn.disabled = false; }, 2500);
     } catch (err) {
-        alert('Connection error');
+        btn.textContent = 'Connection error — retry';
+        setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2500);
     }
-    btn.textContent = 'Test my site →';
-    btn.disabled = false;
 });
 
 const observer = new IntersectionObserver((entries) => {
