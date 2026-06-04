@@ -2,56 +2,117 @@
 {% block title %}Test Your Website with AI Personas{% endblock %}
 {% block content %}
 
-<section class="relative overflow-hidden pt-32 pb-40">
-    <div class="absolute inset-0 -z-10">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-primary-600/10 rounded-full blur-[120px]"></div>
-        <div class="absolute top-40 right-0 w-[500px] h-[400px] bg-purple-600/10 rounded-full blur-[100px]"></div>
-        <div class="absolute bottom-0 left-0 w-[400px] h-[300px] bg-blue-600/5 rounded-full blur-[80px]"></div>
-    </div>
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-sm mb-10 backdrop-blur-sm">
-            <span class="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></span>
-            6 AI Personas • Real Browser Testing • UX Score
-        </div>
-        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.1] mb-8 tracking-tight">
-            <span class="gradient-text">Test your site</span><br>
-            <span class="text-white">with AI personas</span>
-        </h1>
-        <p class="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed">
-            nipX sends simulated users through your website — from first-timers to power users — and tells you exactly what's broken.
-        </p>
-        <form id="test-form" class="max-w-lg mx-auto">
-            <div class="flex flex-col sm:flex-row gap-3">
-                <input type="url" id="url-input" required placeholder="yourapp.com" class="flex-1 px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-base transition-all">
-                <button type="submit" class="px-8 py-4 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all text-base shadow-xl shadow-primary-600/20 hover:shadow-primary-500/30 whitespace-nowrap active:scale-[0.98]">
-                    Run Test →
-                </button>
+<style>
+@keyframes float-up { 0%, 100% { transform: translateY(0) rotate(0deg); } 33% { transform: translateY(-16px) rotate(1deg); } 66% { transform: translateY(-6px) rotate(-1deg); } }
+@keyframes float-down { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(14px); } }
+@keyframes float-left { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
+@keyframes float-right { 0%,100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes typing { from { width: 0; } to { width: 100%; } }
+@keyframes blink { 0%,50% { border-color: transparent; } 51%,100% { border-color: #818cf8; } }
+@keyframes particle-float { 0%,100% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+@keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(2.5); opacity: 0; } }
+@keyframes slide-in-left { from { opacity:0; transform: translateX(-40px); } to { opacity:1; transform: translateX(0); } }
+@keyframes slide-in-right { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform: translateX(0); } }
+@keyframes scale-in { from { opacity:0; transform: scale(0.8); } to { opacity:1; transform: scale(1); } }
+@keyframes dash { to { stroke-dashoffset: 0; } }
+
+.anim-float-up { animation: float-up 5s ease-in-out infinite; }
+.anim-float-down { animation: float-down 4.5s ease-in-out infinite; }
+.anim-float-left { animation: float-left 4s ease-in-out infinite; }
+.anim-float-right { animation: float-right 4s ease-in-out infinite; }
+.anim-fade-up { animation: fade-in-up 0.7s ease-out both; }
+.anim-slide-left { animation: slide-in-left 0.7s ease-out both; }
+.anim-slide-right { animation: slide-in-right 0.7s ease-out both; }
+.anim-scale-in { animation: scale-in 0.5s ease-out both; }
+
+.scroll-reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s ease-out; }
+.scroll-reveal.visible { opacity: 1; transform: translateY(0); }
+
+.persona-avatar {
+    width: 64px; height: 64px; border-radius: 50%; position: relative;
+    display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; cursor: default;
+}
+.persona-card:hover .persona-avatar { transform: scale(1.1); }
+.persona-card:hover .persona-avatar .persona-ring { animation: pulse-ring 1.5s ease-out infinite; }
+
+.hero-shape { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.15; }
+.particle { position: fixed; pointer-events: none; z-index: 0; }
+</style>
+
+<div class="fixed inset-0 pointer-events-none overflow-hidden -z-10" id="particles"></div>
+
+<section class="relative overflow-hidden pt-28 pb-36">
+    <div class="hero-shape w-[700px] h-[500px] bg-primary-500/30 top-[-150px] left-[-200px] anim-float-up" style="animation-duration: 7s;"></div>
+    <div class="hero-shape w-[500px] h-[400px] bg-purple-500/20 top-[-100px] right-[-150px] anim-float-down" style="animation-duration: 6s;"></div>
+    <div class="hero-shape w-[400px] h-[350px] bg-blue-500/15 bottom-[-200px] left-[30%] anim-float-right" style="animation-duration: 8s;"></div>
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="text-center max-w-3xl mx-auto">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-sm mb-10 anim-scale-in" style="animation-delay: 0.1s;">
+                <span class="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></span>
+                6 AI Personas • Real Browser Testing • UX Score
             </div>
-            <p class="text-gray-600 text-sm mt-4">3 free tests — no credit card required</p>
-        </form>
+
+            <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] mb-8 tracking-tight">
+                <span class="anim-fade-up" style="animation-delay: 0.2s; display: inline-block;">Ship with</span>
+                <br>
+                <span class="gradient-text anim-fade-up" style="animation-delay: 0.4s; display: inline-block;">confidence</span>
+            </h1>
+
+            <p class="text-lg sm:text-xl text-gray-400 mb-12 max-w-xl mx-auto leading-relaxed anim-fade-up" style="animation-delay: 0.6s;">
+                nipX simulates <span class="text-white font-medium">real people</span> browsing your website — so you catch UX problems your analytics can't see.
+            </p>
+
+            <form id="test-form" class="max-w-lg mx-auto anim-fade-up" style="animation-delay: 0.8s;">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="url" id="url-input" required placeholder="yourapp.com"
+                        class="flex-1 px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-base transition-all">
+                    <button type="submit"
+                        class="px-8 py-4 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all text-base shadow-xl shadow-primary-600/20 hover:shadow-primary-500/30 whitespace-nowrap active:scale-[0.98]">
+                        Test my site →
+                    </button>
+                </div>
+                <p class="text-gray-600 text-sm mt-4">3 free tests — no credit card</p>
+            </form>
+        </div>
+    </div>
+
+    <div class="absolute bottom-8 left-0 right-0 flex justify-center anim-fade-up" style="animation-delay: 1.2s;">
+        <div class="text-gray-600 text-xs tracking-widest uppercase flex items-center gap-2 anim-float-down" style="animation-duration: 3s;">
+            <span>Scroll</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        </div>
     </div>
 </section>
 
 <section class="py-24 border-t border-white/5">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16">
-            <h2 class="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">6 personas, <span class="gradient-text">one test</span></h2>
-            <p class="text-gray-400 text-lg max-w-xl mx-auto">Each persona browses your site differently, uncovering unique issues</p>
+        <div class="text-center mb-16 scroll-reveal">
+            <h2 class="text-3xl sm:text-4xl font-extrabold mb-4 tracking-tight">6 personas <span class="gradient-text">one test</span></h2>
+            <p class="text-gray-400 text-lg max-w-lg mx-auto">Each persona explores your site differently — catching unique UX issues</p>
         </div>
+
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {% set personas = [
-                ("🆕", "First-Time Customer", "Reads everything, looks for trust"),
-                ("👴", "Confused Grandparent", "Slow, clicks wrong elements"),
-                ("⚡", "Power User", "Fast, wants efficiency"),
-                ("🎮", "Impatient Gamer", "Rapid clicking, zero wait"),
-                ("📱", "Mobile User", "3G speed, touch navigation"),
-                ("💰", "Potential Buyer", "Compares plans, reads reviews")
+                ("first_time_customer", "Visitor", "Scans for trust signals, reads every label", "#6366f1", "👁"),
+                ("confused_grandparent", "Beginner", "Clicks wrong elements, needs guidance", "#f59e0b", "🤔"),
+                ("power_user", "Expert", "Keyboard-driven, wants speed & shortcuts", "#10b981", "⚡"),
+                ("impatient_gamer", "Rusher", "Rapid clicks, backs out in 2 seconds", "#ef4444", "😤"),
+                ("mobile_user", "Scroller", "Slow 3G, thumbs-only, small screen", "#8b5cf6", "📱"),
+                ("potential_buyer", "Researcher", "Compares plans, reads reviews carefully", "#ec4899", "🧐"),
             ] %}
-            {% for emoji, label, desc in personas %}
-            <div class="card-hover bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 text-center hover:border-primary-500/30 hover:bg-white/[0.05]">
-                <div class="text-2xl mb-2">{{ emoji }}</div>
-                <h3 class="font-semibold text-xs mb-1 leading-tight">{{ label }}</h3>
-                <p class="text-[11px] text-gray-500 leading-tight">{{ desc }}</p>
+            {% for name, label, desc, color, face in personas %}
+            <div class="persona-card scroll-reveal bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5 text-center hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300 cursor-default" style="transition-delay: {{ loop.index0 * 80 }}ms;">
+                <div class="persona-avatar mx-auto mb-3" style="background: {{ color }}15;">
+                    <div class="persona-ring absolute inset-0 rounded-full" style="border: 2px solid {{ color }}40;"></div>
+                    <span class="text-2xl relative z-10">{{ face }}</span>
+                </div>
+                <span class="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-1.5" style="background: {{ color }}15; color: {{ color }};">{{ label }}</span>
+                <p class="text-[12px] text-gray-500 leading-tight">{{ desc }}</p>
             </div>
             {% endfor %}
         </div>
@@ -60,22 +121,22 @@
 
 <section class="py-24 border-t border-white/5 bg-white/[0.015]">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-16 tracking-tight">What you'll get</h2>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-center mb-16 tracking-tight scroll-reveal">What you'll get</h2>
         <div class="grid md:grid-cols-3 gap-6">
-            <div class="card-hover bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
-                <div class="w-12 h-12 rounded-xl bg-primary-500/10 flex items-center justify-center text-2xl mb-5">🎬</div>
-                <h3 class="text-lg font-semibold mb-3">Video Replays</h3>
-                <p class="text-gray-400 text-sm leading-relaxed">Watch every persona explore your site. See exactly where they pause, click, and get lost.</p>
+            <div class="scroll-reveal bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 hover:bg-white/[0.05] transition-all duration-300">
+                <div class="w-12 h-12 rounded-xl bg-primary-500/10 flex items-center justify-center text-xl mb-5 anim-float-up" style="animation-duration: 4.5s">🎬</div>
+                <h3 class="text-lg font-semibold mb-3">Session Replays</h3>
+                <p class="text-gray-400 text-sm leading-relaxed">Watch each persona navigate in real-time. See confusion, hesitation & frustration as it happens.</p>
             </div>
-            <div class="card-hover bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
-                <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-2xl mb-5">🔍</div>
+            <div class="scroll-reveal bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 hover:bg-white/[0.05] transition-all duration-300" style="transition-delay: 100ms;">
+                <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-xl mb-5 anim-float-up" style="animation-duration: 5s">🔍</div>
                 <h3 class="text-lg font-semibold mb-3">Issue Report</h3>
-                <p class="text-gray-400 text-sm leading-relaxed">Grouped by type. Missing buttons, confusing layouts, slow pages — prioritized by severity.</p>
+                <p class="text-gray-400 text-sm leading-relaxed">Missing links, broken layouts, dead ends — cataloged by type & severity with clear explanations.</p>
             </div>
-            <div class="card-hover bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
-                <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-2xl mb-5">📊</div>
+            <div class="scroll-reveal bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 hover:bg-white/[0.05] transition-all duration-300" style="transition-delay: 200ms;">
+                <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-xl mb-5 anim-float-up" style="animation-duration: 5.5s">📊</div>
                 <h3 class="text-lg font-semibold mb-3">UX Score</h3>
-                <p class="text-gray-400 text-sm leading-relaxed">A clear 0-100 score breaking down navigation, clarity, speed, mobile, and content.</p>
+                <p class="text-gray-400 text-sm leading-relaxed">A single 0–100 score breaking down navigation, clarity, speed, mobile & content quality.</p>
             </div>
         </div>
     </div>
@@ -83,67 +144,67 @@
 
 <section class="py-24 border-t border-white/5">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4 tracking-tight">Simple pricing</h2>
-        <p class="text-gray-400 text-center mb-16">Start free, upgrade when you need more</p>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-center mb-4 tracking-tight scroll-reveal">Pricing</h2>
+        <p class="text-gray-400 text-center mb-16 scroll-reveal">Start free. Scale when you're ready.</p>
         <div class="grid md:grid-cols-3 gap-6">
-            <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 flex flex-col hover:border-white/10 transition-all">
+            <div class="scroll-reveal bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 flex flex-col hover:border-white/10 transition-all duration-300">
                 <div>
-                    <h3 class="text-lg font-semibold mb-1">Starter</h3>
-                    <div class="mt-4 mb-6">
-                        <span class="text-4xl font-bold">₹0</span>
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-300 mb-4 inline-block">Starter</span>
+                    <div class="mt-3 mb-6">
+                        <span class="text-4xl font-extrabold">₹0</span>
                         <span class="text-gray-500 text-sm ml-1">forever</span>
                     </div>
                     <ul class="space-y-3 text-sm text-gray-400 mb-8">
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> 3 tests / month</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> 6 AI personas</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> UX score + screenshots</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> Basic issue report</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> 3 tests / month</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> 6 AI personas</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> UX score + screenshots</li>
                     </ul>
                 </div>
-                <a href="/signup" class="mt-auto block text-center py-3 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm font-medium transition-all">Get started free</a>
+                <a href="/signup" class="mt-auto block text-center py-3 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm font-semibold transition-all">Get started</a>
             </div>
-            <div class="bg-primary-500/5 border-2 border-primary-500/30 rounded-2xl p-8 flex flex-col relative hover:border-primary-500/50 transition-all">
-                <span class="absolute -top-3 right-6 bg-primary-600 text-xs font-bold px-3 py-1 rounded-full shadow-lg">Popular</span>
+
+            <div class="scroll-reveal bg-primary-500/5 border-2 border-primary-500/30 rounded-2xl p-8 flex flex-col relative hover:border-primary-500/50 transition-all duration-300" style="transition-delay: 100ms;">
+                <span class="absolute -top-3 right-6 bg-primary-600 text-xs font-bold px-3 py-1 rounded-full shadow-lg">Most popular</span>
                 <div>
-                    <h3 class="text-lg font-semibold mb-1">Pro</h3>
-                    <div class="mt-4 mb-6">
-                        <span class="text-4xl font-bold">₹999</span>
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-300 mb-4 inline-block">Pro</span>
+                    <div class="mt-3 mb-6">
+                        <span class="text-4xl font-extrabold">₹999</span>
                         <span class="text-gray-500 text-sm ml-1">/month</span>
                     </div>
                     <ul class="space-y-3 text-sm text-gray-400 mb-8">
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> 30 tests / month</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> 6 AI personas</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> Full UX breakdown</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> Video replays</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> Priority support</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> 30 tests / month</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> Full UX breakdown</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> Session replays</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> Priority support</li>
                     </ul>
                 </div>
-                <a href="/" class="mt-auto block text-center py-3 bg-primary-600 hover:bg-primary-500 rounded-xl text-sm font-medium transition-all shadow-lg shadow-primary-600/20">Subscribe</a>
+                <a href="/" class="mt-auto block text-center py-3 bg-primary-600 hover:bg-primary-500 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-primary-600/20">Subscribe</a>
             </div>
-            <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 flex flex-col hover:border-white/10 transition-all">
+
+            <div class="scroll-reveal bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8 flex flex-col hover:border-white/10 transition-all duration-300" style="transition-delay: 200ms;">
                 <div>
-                    <h3 class="text-lg font-semibold mb-1">Agency</h3>
-                    <div class="mt-4 mb-6">
-                        <span class="text-4xl font-bold">₹4,999</span>
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 mb-4 inline-block">Agency</span>
+                    <div class="mt-3 mb-6">
+                        <span class="text-4xl font-extrabold">₹4,999</span>
                         <span class="text-gray-500 text-sm ml-1">/month</span>
                     </div>
                     <ul class="space-y-3 text-sm text-gray-400 mb-8">
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> Unlimited tests</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> 6 AI personas</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> Full UX breakdown</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> Video + white-label</li>
-                        <li class="flex items-center gap-2"><span class="text-primary-400">✓</span> API access</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> Unlimited tests</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> White-label reports</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> API access</li>
+                        <li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg> Custom personas</li>
                     </ul>
                 </div>
-                <a href="/" class="mt-auto block text-center py-3 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm font-medium transition-all">Contact sales</a>
+                <a href="/" class="mt-auto block text-center py-3 border border-white/10 hover:border-primary-500/50 rounded-xl text-sm font-semibold transition-all">Contact sales</a>
             </div>
         </div>
     </div>
 </section>
 
 <footer class="border-t border-white/5 py-10">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-600 text-sm">
-        <p>nipX — AI-powered UX testing. Built by nips.</p>
+    <div class="max-w-6xl mx-auto px-4 text-center">
+        <img src="/static/logo.svg" alt="nipX" class="h-8 mx-auto mb-4 opacity-60" />
+        <p class="text-gray-600 text-sm">AI-powered UX testing. Built by nips.</p>
     </div>
 </footer>
 
@@ -152,7 +213,7 @@ document.getElementById('test-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = document.getElementById('url-input').value;
     const btn = e.target.querySelector('button');
-    btn.textContent = 'Testing...';
+    btn.textContent = 'Starting...';
     btn.disabled = true;
     const token = localStorage.getItem('token');
     const headers = { 'Content-Type': 'application/json' };
@@ -161,13 +222,18 @@ document.getElementById('test-form')?.addEventListener('submit', async (e) => {
         const res = await fetch('/api/tests', { method: 'POST', headers, body: JSON.stringify({ url }) });
         const data = await res.json();
         if (data.id) { window.location.href = `/test/${data.id}`; return; }
-        if (res.status === 401) { window.location.href = '/login?redirect=test'; return; }
+        if (res.status === 401) { window.location.href = '/login'; return; }
         alert(data.detail || 'Could not start test');
     } catch (err) {
-        alert('Connection error — please try again');
+        alert('Connection error');
     }
-    btn.textContent = 'Run Test →';
+    btn.textContent = 'Test my site →';
     btn.disabled = false;
 });
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
 </script>
 {% endblock %}
