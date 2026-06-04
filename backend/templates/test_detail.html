@@ -178,45 +178,57 @@ async function loadTest() {
             </div>`;
         }
 
-        html += `
-        <div>
-            <h3 class="text-lg font-semibold mb-4">Persona Results</h3>
-            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                ${(data.persona_results || []).map(renderPersonaCard).join('')}
-            </div>
-        </div>`;
+        const personaEmoji = { first_time_customer: '&#x1F195;', confused_grandparent: '&#x1F474;', power_user: '&#x26A1;', impatient_gamer: '&#x1F3AE;', mobile_user: '&#x1F4F1;', potential_buyer: '&#x1F4B0;' };
+        const personaLabel = { first_time_customer: 'First-Time Visitor', confused_grandparent: 'Elderly Beginner', power_user: 'Power User', impatient_gamer: 'Speed Runner', mobile_user: 'Phone User', potential_buyer: 'Cautious Buyer' };
 
-        if (data.issues && data.issues.length > 0) {
-            const groups = {};
-            const groupLabels = {
-                missing_element: { icon: '🔗', title: 'Missing Links & Buttons', desc: 'Personas looked for navigation links or buttons that were not found' },
-                navigation_error: { icon: '🚦', title: 'Navigation Problems', desc: 'Pages that failed to load or actions that timed out' },
-                click_error: { icon: '🖱️', title: 'Click Issues', desc: 'Elements that were difficult or confusing to interact with' },
-                fatal: { icon: '💥', title: 'Critical Errors', desc: 'Serious failures that prevented testing' },
-            };
-            data.issues.forEach(i => {
-                const g = groups[i.type] || (groups[i.type] = []);
-                g.push(i);
-            });
-            html += `<div><h3 class="text-lg font-semibold mb-4">Issues Found (${data.issues.length})</h3><div class="space-y-4">`;
-            for (const [type, items] of Object.entries(groups)) {
-                const meta = groupLabels[type] || { icon: '⚠️', title: type.replace(/_/g, ' '), desc: '' };
-                html += `
-                <div class="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
-                    <div class="px-5 py-3 border-b border-gray-800 flex items-center space-x-3">
-                        <span class="text-lg">${meta.icon}</span>
+        html += '<div class="space-y-8">';
+        (data.persona_results || []).forEach(p => {
+            const pIssues = (data.issues || []).filter(i => i.persona_name === p.persona_name);
+            const sc = p.screenshot_paths || [];
+            const nav = p.navigation_path || [];
+            const notes = p.persona_notes ? JSON.parse(p.persona_notes) : {};
+
+            html += `
+            <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">${personaEmoji[p.persona_name] || '👤'}</span>
                         <div>
-                            <h4 class="font-semibold text-sm">${meta.title} (${items.length})</h4>
-                            ${meta.desc ? `<p class="text-xs text-gray-500">${meta.desc}</p>` : ''}
+                            <h3 class="font-semibold">${personaLabel[p.persona_name] || p.persona_name}</h3>
+                            <p class="text-xs text-gray-500">${nav.length} actions • ${sc.length} screenshots • ${pIssues.length} issues</p>
                         </div>
                     </div>
-                    <div class="divide-y divide-gray-800/50">
-                        ${items.map(renderIssueRow).join('')}
-                    </div>
-                </div>`;
+                    <span class="text-xs px-2 py-1 rounded-full capitalize ${p.status === 'completed' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}">${p.status}</span>
+                </div>
+                <div class="p-6 space-y-4">`;
+
+            if (notes.scroll_depth_pct) html += `<div class="flex items-center gap-2 text-xs text-gray-500"><span>Scrolled ${notes.scroll_depth_pct}% of the page</span></div>`;
+            if (notes.console_errors) html += `<div class="text-xs text-red-400">${notes.console_errors} browser console errors detected</div>`;
+
+            if (pIssues.length > 0) {
+                html += `<div class="space-y-2"><h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Issues found</h4>`;
+                pIssues.forEach(i => {
+                    html += `
+                    <div class="flex items-start gap-3 bg-white/[0.02] rounded-lg px-3 py-2">
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${getSeverityColor(i.severity)} capitalize shrink-0">${i.severity}</span>
+                        <p class="text-sm">${i.description}</p>
+                    </div>`;
+                });
+                html += `</div>`;
+            } else {
+                html += `<div class="text-xs text-green-400">No issues found — smooth experience</div>`;
             }
+
+            if (sc.length > 0) {
+                html += `
+                <details><summary class="text-sm text-primary-400 cursor-pointer">View ${sc.length} screenshots</summary>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">${sc.map(s => `<img src="/${s}" onclick="openLightbox('/${s}')" class="rounded-lg border border-gray-700 hover:border-primary-500 transition-all w-full cursor-pointer">`).join('')}</div>
+                </details>`;
+            }
+
             html += `</div></div>`;
-        }
+        });
+        html += '</div>';
 
         html += `<div class="text-center pt-4 flex items-center justify-center gap-6"><a href="/dashboard" class="text-primary-400 hover:text-primary-300 text-sm">← Back to Dashboard</a><a href="/test/${testId}/report?print=1" target="_blank" class="text-sm text-gray-400 hover:text-white transition-colors">📥 Download PDF Report</a></div>`;
         container.innerHTML = html;
