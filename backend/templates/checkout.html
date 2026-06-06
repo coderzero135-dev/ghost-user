@@ -10,20 +10,29 @@
     </div>
 </div>
 
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const plan = params.get('plan') || 'pro';
 const token = localStorage.getItem('token');
-
 if (!token) { window.location.href = '/login?redirect=checkout&plan=' + plan; throw 0; }
 
 const plans = {
-    pro: { name: 'Pro', price: '₹999', credits: 30, features: ['30 tests/month','Full UX breakdown','Session replays','Priority support'] },
-    agency: { name: 'Agency', price: '₹4,999', credits: 999, features: ['Unlimited tests','White-label reports','API access','Custom personas'] }
+    pro: { name: 'Pro', price: '₹999', amount: 99900, credits: 30, features: ['30 tests/month','Full UX breakdown','Session replays','Priority support'] },
+    agency: { name: 'Agency', price: '₹4,999', amount: 499900, credits: 999, features: ['Unlimited tests','White-label reports','API access','Custom personas'] }
 };
+
 const p = plans[plan] || plans.pro;
 
-document.getElementById('checkout-content').innerHTML = `
+async function load() {
+    let hasRazorpay = false;
+    try {
+        const cfg = await fetch('/api/payment/config', { headers: { 'Authorization': 'Bearer ' + token } });
+        const config = await cfg.json();
+        hasRazorpay = config.key_id && config.key_id.startsWith('rzp_');
+    } catch(e) {}
+
+    document.getElementById('checkout-content').innerHTML = `
     <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
         <div class="text-center mb-8">
             <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-4">
@@ -51,40 +60,73 @@ document.getElementById('checkout-content').innerHTML = `
             ${p.features.map(f => `<li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>${f}</li>`).join('')}
         </ul>
 
-        <button onclick="activatePlan()" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30 active:scale-[0.98]">
-            Activate ${p.name} — ${p.price}
+        <button onclick="${hasRazorpay ? 'payRazorpay()' : 'activateDirect()'}" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30 active:scale-[0.98]">
+            Pay ${p.price}
         </button>
-
-        <p class="text-xs text-gray-600 text-center mt-4">Test mode — no real payment processed</p>
+        <p class="text-xs text-gray-600 text-center mt-4">${hasRazorpay ? 'Secured by Razorpay' : 'Test mode — no real payment'}</p>
     </div>`;
-</script>
+}
+load();
 
-<script>
-async function activatePlan() {
+async function payRazorpay() {
+    const btn = document.getElementById('pay-btn');
+    btn.textContent = 'Creating order...';
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/payment/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ plan })
+        });
+        const order = await res.json();
+        if (!res.ok) { alert(order.detail); btn.textContent = 'Pay ' + p.price; btn.disabled = false; return; }
+
+        const rzp = new Razorpay({
+            key: order.key_id,
+            amount: order.amount,
+            currency: order.currency,
+            name: 'nipX',
+            description: p.name + ' Plan',
+            order_id: order.order_id,
+            prefill: { email: order.user_email },
+            theme: { color: '#6366f1' },
+            handler: async function(response) {
+                btn.textContent = 'Verifying...';
+                const vRes = await fetch('/api/payment/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature,
+                        plan
+                    })
+                });
+                if (vRes.ok) window.location.href = '/dashboard?upgraded=' + plan;
+                else { alert('Verification failed'); btn.textContent = 'Pay ' + p.price; btn.disabled = false; }
+            },
+            modal: { ondismiss: () => { btn.textContent = 'Pay ' + p.price; btn.disabled = false; } }
+        });
+        rzp.open();
+    } catch(e) {
+        btn.textContent = 'Error — retry';
+        btn.disabled = false;
+    }
+}
+
+async function activateDirect() {
     const btn = document.getElementById('pay-btn');
     btn.textContent = 'Activating...';
     btn.disabled = true;
     try {
-        const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
-        const user = await res.json();
-
         const planRes = await fetch('/api/auth/upgrade', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ plan, credits: plans[plan].credits })
+            body: JSON.stringify({ plan, credits: p.credits })
         });
-
-        if (planRes.ok) {
-            window.location.href = '/dashboard?upgraded=' + plan;
-        } else {
-            const err = await planRes.json();
-            btn.textContent = err.detail || 'Failed — try again';
-            setTimeout(() => { btn.textContent = 'Activate ' + plans[plan].name + ' — ' + plans[plan].price; btn.disabled = false; }, 2000);
-        }
-    } catch(e) {
-        btn.textContent = 'Error — retry';
-        setTimeout(() => { btn.textContent = 'Activate ' + plans[plan].name + ' — ' + plans[plan].price; btn.disabled = false; }, 2000);
-    }
+        if (planRes.ok) window.location.href = '/dashboard?upgraded=' + plan;
+        else { const err = await planRes.json(); btn.textContent = err.detail || 'Failed'; btn.disabled = false; }
+    } catch(e) { btn.textContent = 'Error'; btn.disabled = false; }
 }
 </script>
 {% endblock %}

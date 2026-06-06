@@ -9,6 +9,7 @@ from backend.database import init_db
 from backend.routers.tests import router as tests_router
 from backend.routers.auth import router as auth_router
 from backend.routers.admin import router as admin_router
+from backend.routers.payment import router as payment_router
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
@@ -37,6 +38,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.include_router(auth_router)
 app.include_router(tests_router)
 app.include_router(admin_router)
+app.include_router(payment_router)
 
 @app.get("/")
 async def landing(request: Request):
