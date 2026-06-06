@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_db
-from backend.services.auth import get_current_user
+from backend.services.auth import get_current_user, require_user
 from backend.models import User
 import hashlib
 import hmac
@@ -23,7 +23,7 @@ PLANS = {
 
 
 @router.get("/config")
-async def payment_config(user: User = Depends(get_current_user)):
+async def payment_config(user: User = Depends(require_user)):
     return {
         "key_id": RAZORPAY_KEY_ID,
         "plans": PLANS,
@@ -35,7 +35,7 @@ class CreateOrderRequest(BaseModel):
 
 
 @router.post("/create-order")
-async def create_order(req: CreateOrderRequest, user: User = Depends(get_current_user)):
+async def create_order(req: CreateOrderRequest, user: User = Depends(require_user)):
     if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
         raise HTTPException(status_code=400, detail="Payment not configured")
 
@@ -79,7 +79,7 @@ class VerifyRequest(BaseModel):
 
 
 @router.post("/verify")
-async def verify_payment(req: VerifyRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def verify_payment(req: VerifyRequest, user: User = Depends(require_user), db: AsyncSession = Depends(get_db)):
     if not RAZORPAY_KEY_SECRET:
         raise HTTPException(status_code=400, detail="Payment not configured")
 
