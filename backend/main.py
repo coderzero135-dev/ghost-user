@@ -61,3 +61,7 @@ async def signup_page(request: Request):
 @app.get("/test/{test_id}/report")
 async def test_report(request: Request, test_id: int):
     return render("report.html", request=request)
+
+@app.get("/admin")
+async def admin_page(request: Request):
+    return render("admin.html", request=request)
