@@ -2,120 +2,108 @@
 {% block title %}Checkout{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto px-4 py-20">
-    <div id="step-loading" class="text-center py-12"><div class="animate-spin text-2xl mb-3 inline-block">⏳</div><p class="text-sm text-gray-500">Loading checkout...</p></div>
-    <div id="step-need-login" class="text-center py-12 hidden">
-        <p class="text-lg mb-4">You need to be logged in to upgrade</p>
-        <a href="/login" class="px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all">Log In</a>
-        <a href="/signup" class="block text-primary-400 text-sm mt-3">or Sign Up</a>
+
+<div id="needs-login" class="text-center py-12 hidden">
+    <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-4"><span class="text-xl">🔒</span></div>
+    <h2 class="text-xl font-bold mb-2">Login required</h2>
+    <p class="text-gray-400 text-sm mb-6">You need an account to upgrade</p>
+    <a href="/login" class="px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all">Log In</a>
+    <a href="/signup" class="block text-primary-400 text-sm mt-3">or create account</a>
+</div>
+
+<div id="checkout-ui" class="hidden">
+    <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
+        <div class="text-center mb-8">
+            <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-4"><span class="text-xl">💳</span></div>
+            <h1 class="text-2xl font-bold" id="plan-name">Pro</h1>
+        </div>
+
+        <div class="bg-white/[0.04] rounded-xl p-5 mb-6">
+            <div class="flex justify-between items-center mb-3"><span class="text-gray-400">Plan</span><span class="font-semibold" id="label-plan">Pro</span></div>
+            <div class="flex justify-between items-center mb-3"><span class="text-gray-400">Billing</span><span class="font-semibold">Monthly</span></div>
+            <div class="border-t border-white/[0.06] pt-3 mt-3 flex justify-between items-center"><span class="font-semibold">Total</span><span class="text-xl font-bold text-primary-400" id="label-price">₹999</span></div>
+        </div>
+
+        <ul class="space-y-2 mb-6 text-sm text-gray-400" id="features-list"></ul>
+
+        <button onclick="pay()" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20">Pay with Razorpay</button>
+        <p id="status-msg" class="text-xs text-gray-600 text-center mt-4">Secured by Razorpay · Test card: 4111 1111 1111 1111</p>
     </div>
-    <div id="step-checkout" class="hidden"></div>
+</div>
+
 </div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
-const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(location.search);
 const plan = params.get('plan') || 'pro';
 const token = localStorage.getItem('token');
 
 const plans = {
-    pro: { name: 'Pro', price: '₹999', amount: 99900, credits: 30, features: ['30 tests/month','Full UX breakdown','Session replays','Priority support'] },
-    agency: { name: 'Agency', price: '₹4,999', amount: 499900, credits: 999, features: ['Unlimited tests','White-label reports','API access','Custom personas'] }
+    pro:    { name:'Pro', amount:99900, credits:30, price:'₹999',     features:['30 tests/month','Full UX breakdown','Session replays','Priority support'] },
+    agency: { name:'Agency',amount:499900,credits:999,price:'₹4,999', features:['Unlimited tests','White-label reports','API access','Custom personas'] }
 };
 const p = plans[plan] || plans.pro;
 
 if (!token) {
-    document.getElementById('step-loading').classList.add('hidden');
-    document.getElementById('step-need-login').classList.remove('hidden');
+    document.getElementById('needs-login').classList.remove('hidden');
 } else {
-    init();
-}
-
-async function init() {
-    let rzpAvailable = false;
-    try {
-        const cfg = await fetch('/api/payment/config', { headers: { 'Authorization': 'Bearer ' + token } });
-        const d = await cfg.json();
-        rzpAvailable = !!(d.key_id && d.key_id.startsWith('rzp_'));
-    } catch(e) {}
-
-    document.getElementById('step-loading').classList.add('hidden');
-    document.getElementById('step-checkout').classList.remove('hidden');
-    document.getElementById('step-checkout').innerHTML = `
-    <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
-        <div class="text-center mb-8">
-            <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-4"><span class="text-xl">💳</span></div>
-            <h1 class="text-2xl font-bold tracking-tight">Upgrade to ${p.name}</h1>
-        </div>
-        <div class="bg-white/[0.04] rounded-xl p-5 mb-6">
-            <div class="flex justify-between items-center mb-3"><span class="text-gray-400">Plan</span><span class="font-semibold">${p.name}</span></div>
-            <div class="flex justify-between items-center mb-3"><span class="text-gray-400">Billing</span><span class="font-semibold">Monthly</span></div>
-            <div class="border-t border-white/[0.06] pt-3 mt-3 flex justify-between items-center"><span class="font-semibold">Total</span><span class="text-xl font-bold text-primary-400">${p.price}</span></div>
-        </div>
-        <ul class="space-y-2 mb-6 text-sm text-gray-400">${p.features.map(f => `<li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>${f}</li>`).join('')}</ul>
-        <button onclick="pay()" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20">${rzpAvailable ? 'Pay ' + p.price + ' via Razorpay' : 'Activate ' + p.name + ' — ' + p.price}</button>
-        <p class="text-xs text-gray-600 text-center mt-4">${rzpAvailable ? 'Secured by Razorpay · Test card: 4111 1111 1111 1111' : 'Plan activates immediately'}</p>
-    </div>`;
+    document.getElementById('checkout-ui').classList.remove('hidden');
+    document.getElementById('plan-name').textContent = 'Upgrade to ' + p.name;
+    document.getElementById('label-plan').textContent = p.name;
+    document.getElementById('label-price').textContent = p.price;
+    document.getElementById('features-list').innerHTML = p.features.map(f => `<li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>${f}</li>`).join('');
 }
 
 async function pay() {
     const btn = document.getElementById('pay-btn');
-    btn.textContent = 'Processing...';
+    const msg = document.getElementById('status-msg');
+    btn.textContent = 'Creating order...';
     btn.disabled = true;
 
-    let rzpAvailable = false;
     try {
-        const cfg = await fetch('/api/payment/config', { headers: { 'Authorization': 'Bearer ' + token } });
-        const d = await cfg.json();
-        rzpAvailable = !!(d.key_id && d.key_id.startsWith('rzp_'));
-    } catch(e) {}
+        const oRes = await fetch('/api/payment/create-order', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body: JSON.stringify({ plan })
+        });
+        const order = await oRes.json();
+        if (!oRes.ok) throw new Error(order.detail || 'Order failed');
 
-    if (rzpAvailable) {
-        try {
-            const res = await fetch('/api/payment/create-order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify({ plan })
-            });
-            const order = await res.json();
-            if (!res.ok) { throw new Error(order.detail || 'Razorpay error'); }
-
-            const rzp = new Razorpay({
-                key: order.key_id,
-                amount: order.amount,
-                currency: order.currency,
-                name: 'nipX',
-                description: p.name + ' Plan',
-                order_id: order.order_id,
-                prefill: { email: order.user_email },
-                theme: { color: '#6366f1' },
-                handler: async function(r) {
-                    btn.textContent = 'Verifying...';
-                    const v = await fetch('/api/payment/verify', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify({ razorpay_order_id: r.razorpay_order_id, razorpay_payment_id: r.razorpay_payment_id, razorpay_signature: r.razorpay_signature, plan })
-                    });
-                    if (v.ok) { window.location.href = '/dashboard?upgraded=' + plan; }
-                    else { alert('Payment verification failed'); btn.textContent = 'Pay ' + p.price; btn.disabled = false; }
-                },
-                modal: { ondismiss: () => { btn.textContent = 'Pay ' + p.price; btn.disabled = false; } }
-            });
-            rzp.open();
-        } catch(e) {
-            alert(e.message || 'Payment error');
-            btn.textContent = 'Pay ' + p.price;
-            btn.disabled = false;
-        }
-    } else {
-        try {
-            const res = await fetch('/api/auth/upgrade', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify({ plan, credits: p.credits })
-            });
-            if (res.ok) { window.location.href = '/dashboard?upgraded=' + plan; }
-            else { const e = await res.json(); alert(e.detail || 'Upgrade failed'); }
-        } catch(e) { alert('Connection error'); }
+        const rzp = new Razorpay({
+            key: order.key_id,
+            amount: order.amount,
+            currency: 'INR',
+            name: 'nipX',
+            description: p.name + ' Plan',
+            order_id: order.order_id,
+            prefill: { email: order.prefill_email },
+            theme: { color: '#6366f1' },
+            handler: async function(r) {
+                btn.textContent = 'Verifying...';
+                const vRes = await fetch('/api/payment/verify', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+                    body: JSON.stringify({ razorpay_order_id: r.razorpay_order_id, razorpay_payment_id: r.razorpay_payment_id, razorpay_signature: r.razorpay_signature, plan })
+                });
+                if (vRes.ok) {
+                    const user = JSON.parse(localStorage.getItem('user')||'{}');
+                    user.credits = p.credits;
+                    user.plan = plan;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    window.location.href = '/dashboard?upgraded=' + plan;
+                } else {
+                    msg.textContent = 'Verification failed. Please try again.';
+                    btn.textContent = 'Pay with Razorpay';
+                    btn.disabled = false;
+                }
+            },
+            modal: { ondismiss: () => { btn.textContent = 'Pay with Razorpay'; btn.disabled = false; } }
+        });
+        rzp.open();
+    } catch(e) {
+        msg.textContent = e.message || 'Payment error';
+        btn.textContent = 'Pay with Razorpay';
         btn.disabled = false;
     }
 }

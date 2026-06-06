@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 aiosqlite
+asyncpg
 playwright
 openai
 jinja2==3.1.4
