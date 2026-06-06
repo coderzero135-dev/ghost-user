@@ -1,10 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Upgrade{% endblock %}
+{% block title %}Checkout{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto px-4 py-20">
-    <div id="checkout-content">
-        <div class="text-center py-12"><div class="animate-spin text-2xl mb-3 inline-block">⏳</div><p class="text-sm text-gray-500">Loading checkout...</p></div>
+    <div id="step-loading" class="text-center py-12"><div class="animate-spin text-2xl mb-3 inline-block">⏳</div><p class="text-sm text-gray-500">Loading checkout...</p></div>
+    <div id="step-need-login" class="text-center py-12 hidden">
+        <p class="text-lg mb-4">You need to be logged in to upgrade</p>
+        <a href="/login" class="px-6 py-2.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all">Log In</a>
+        <a href="/signup" class="block text-primary-400 text-sm mt-3">or Sign Up</a>
     </div>
+    <div id="step-checkout" class="hidden"></div>
 </div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
@@ -12,7 +16,6 @@
 const params = new URLSearchParams(window.location.search);
 const plan = params.get('plan') || 'pro';
 const token = localStorage.getItem('token');
-if (!token) { window.location.href = '/login?redirect=checkout&plan=' + plan; throw 0; }
 
 const plans = {
     pro: { name: 'Pro', price: '₹999', amount: 99900, credits: 30, features: ['30 tests/month','Full UX breakdown','Session replays','Priority support'] },
@@ -20,15 +23,24 @@ const plans = {
 };
 const p = plans[plan] || plans.pro;
 
-async function load() {
+if (!token) {
+    document.getElementById('step-loading').classList.add('hidden');
+    document.getElementById('step-need-login').classList.remove('hidden');
+} else {
+    init();
+}
+
+async function init() {
     let rzpAvailable = false;
     try {
         const cfg = await fetch('/api/payment/config', { headers: { 'Authorization': 'Bearer ' + token } });
-        const config = await cfg.json();
-        rzpAvailable = !!(config.key_id && config.key_id.startsWith('rzp_'));
+        const d = await cfg.json();
+        rzpAvailable = !!(d.key_id && d.key_id.startsWith('rzp_'));
     } catch(e) {}
 
-    document.getElementById('checkout-content').innerHTML = `
+    document.getElementById('step-loading').classList.add('hidden');
+    document.getElementById('step-checkout').classList.remove('hidden');
+    document.getElementById('step-checkout').innerHTML = `
     <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
         <div class="text-center mb-8">
             <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-4"><span class="text-xl">💳</span></div>
@@ -40,78 +52,72 @@ async function load() {
             <div class="border-t border-white/[0.06] pt-3 mt-3 flex justify-between items-center"><span class="font-semibold">Total</span><span class="text-xl font-bold text-primary-400">${p.price}</span></div>
         </div>
         <ul class="space-y-2 mb-6 text-sm text-gray-400">${p.features.map(f => `<li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>${f}</li>`).join('')}</ul>
-        ${rzpAvailable ? '<button onclick="payRazorpay()" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20">Pay ${p.price} via Razorpay</button><p class="text-xs text-gray-600 text-center mt-4">Secured by Razorpay · Use test card 4111 1111 1111 1111</p>' : '<button onclick="activateDirect()" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20">Activate ${p.name} — ${p.price}</button><p class="text-xs text-gray-600 text-center mt-4">Plan activates immediately</p>'}
+        <button onclick="pay()" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20">${rzpAvailable ? 'Pay ' + p.price + ' via Razorpay' : 'Activate ' + p.name + ' — ' + p.price}</button>
+        <p class="text-xs text-gray-600 text-center mt-4">${rzpAvailable ? 'Secured by Razorpay · Test card: 4111 1111 1111 1111' : 'Plan activates immediately'}</p>
     </div>`;
 }
-load();
 
-function updateUserLocally() {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-        try {
-            const user = JSON.parse(userData);
-            user.credits = p.credits;
-            user.plan = plan;
-            localStorage.setItem('user', JSON.stringify(user));
-        } catch(e) {}
-    }
-}
-
-async function payRazorpay() {
+async function pay() {
     const btn = document.getElementById('pay-btn');
-    btn.textContent = 'Creating order...';
+    btn.textContent = 'Processing...';
     btn.disabled = true;
-    try {
-        const res = await fetch('/api/payment/create-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ plan })
-        });
-        const order = await res.json();
-        if (!res.ok) { alert(order.detail || 'Order failed'); btn.textContent = 'Pay ' + p.price; btn.disabled = false; return; }
 
-        const rzp = new Razorpay({
-            key: order.key_id,
-            amount: order.amount,
-            currency: order.currency,
-            name: 'nipX',
-            description: p.name + ' Plan',
-            order_id: order.order_id,
-            prefill: { email: order.user_email },
-            theme: { color: '#6366f1' },
-            handler: async function(response) {
-                btn.textContent = 'Verifying payment...';
-                const v = await fetch('/api/payment/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({ razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature, plan })
-                });
-                if (v.ok) { updateUserLocally(); window.location.href = '/dashboard?upgraded=' + plan; }
-                else { alert('Verification failed'); btn.textContent = 'Pay ' + p.price; btn.disabled = false; }
-            },
-            modal: { ondismiss: () => { btn.textContent = 'Pay ' + p.price; btn.disabled = false; } }
-        });
-        rzp.open();
-    } catch(e) {
-        btn.textContent = 'Error — retry';
+    let rzpAvailable = false;
+    try {
+        const cfg = await fetch('/api/payment/config', { headers: { 'Authorization': 'Bearer ' + token } });
+        const d = await cfg.json();
+        rzpAvailable = !!(d.key_id && d.key_id.startsWith('rzp_'));
+    } catch(e) {}
+
+    if (rzpAvailable) {
+        try {
+            const res = await fetch('/api/payment/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ plan })
+            });
+            const order = await res.json();
+            if (!res.ok) { throw new Error(order.detail || 'Razorpay error'); }
+
+            const rzp = new Razorpay({
+                key: order.key_id,
+                amount: order.amount,
+                currency: order.currency,
+                name: 'nipX',
+                description: p.name + ' Plan',
+                order_id: order.order_id,
+                prefill: { email: order.user_email },
+                theme: { color: '#6366f1' },
+                handler: async function(r) {
+                    btn.textContent = 'Verifying...';
+                    const v = await fetch('/api/payment/verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ razorpay_order_id: r.razorpay_order_id, razorpay_payment_id: r.razorpay_payment_id, razorpay_signature: r.razorpay_signature, plan })
+                    });
+                    if (v.ok) { window.location.href = '/dashboard?upgraded=' + plan; }
+                    else { alert('Payment verification failed'); btn.textContent = 'Pay ' + p.price; btn.disabled = false; }
+                },
+                modal: { ondismiss: () => { btn.textContent = 'Pay ' + p.price; btn.disabled = false; } }
+            });
+            rzp.open();
+        } catch(e) {
+            alert(e.message || 'Payment error');
+            btn.textContent = 'Pay ' + p.price;
+            btn.disabled = false;
+        }
+    } else {
+        try {
+            const res = await fetch('/api/auth/upgrade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ plan, credits: p.credits })
+            });
+            if (res.ok) { window.location.href = '/dashboard?upgraded=' + plan; }
+            else { const e = await res.json(); alert(e.detail || 'Upgrade failed'); }
+        } catch(e) { alert('Connection error'); }
         btn.disabled = false;
     }
-}
-
-async function activateDirect() {
-    const btn = document.getElementById('pay-btn');
-    btn.textContent = 'Activating...';
-    btn.disabled = true;
-    try {
-        const res = await fetch('/api/auth/upgrade', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ plan, credits: p.credits })
-        });
-        if (res.ok) { updateUserLocally(); window.location.href = '/dashboard?upgraded=' + plan; }
-        else { const e = await res.json(); alert(e.detail || 'Failed'); }
-    } catch(e) { alert('Connection error'); }
-    btn.disabled = false;
 }
 </script>
 {% endblock %}
