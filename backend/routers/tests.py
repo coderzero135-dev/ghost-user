@@ -1,5 +1,7 @@
 import asyncio
 import json
+import os
+import shutil
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
@@ -14,6 +16,17 @@ from backend.schemas import CreateTestRequest, TestResponse, TestDetailResponse
 router = APIRouter(prefix="/api/tests", tags=["tests"])
 
 _test_tasks = {}
+
+
+async def _cleanup_screenshots(test_id: int):
+    await asyncio.sleep(600)
+    try:
+        from backend.config import SCREENSHOTS_DIR
+        test_dir = os.path.join(SCREENSHOTS_DIR, f"test_{test_id}")
+        if os.path.exists(test_dir):
+            shutil.rmtree(test_dir)
+    except:
+        pass
 
 async def _update_persona_callback(test_id: int, persona_name: str, data: dict, db: AsyncSession):
     async with db.begin():
@@ -112,6 +125,7 @@ async def _run_test_workflow(test_id: int, url: str):
                 pass
         finally:
             _test_tasks.pop(test_id, None)
+            asyncio.create_task(_cleanup_screenshots(test_id))
 
 
 @router.post("", response_model=TestResponse)
@@ -230,6 +244,13 @@ async def delete_test(test_id: int, db: AsyncSession = Depends(get_db), user: Us
         raise HTTPException(status_code=403, detail="Not your test")
     await db.delete(test)
     await db.commit()
+    try:
+        from backend.config import SCREENSHOTS_DIR
+        test_dir = os.path.join(SCREENSHOTS_DIR, f"test_{test_id}")
+        if os.path.exists(test_dir):
+            shutil.rmtree(test_dir)
+    except:
+        pass
     return {"ok": True}
 
 
