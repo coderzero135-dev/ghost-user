@@ -27,6 +27,7 @@
         <ul class="space-y-2 mb-6 text-sm text-gray-400" id="features-list"></ul>
 
         <button onclick="pay()" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20">Pay with Razorpay</button>
+        <button onclick="activateDirect()" class="w-full py-3 mt-3 border border-white/10 hover:border-primary-500/50 text-white font-semibold rounded-xl transition-all text-sm">Activate Instantly (skip payment)</button>
         <p id="status-msg" class="text-xs text-gray-600 text-center mt-4">Secured by Razorpay · Test card: 4111 1111 1111 1111</p>
     </div>
 </div>
@@ -106,6 +107,25 @@ async function pay() {
         btn.textContent = 'Pay with Razorpay';
         btn.disabled = false;
     }
+}
+
+async function activateDirect() {
+    try {
+        const res = await fetch('/api/auth/upgrade', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body: JSON.stringify({ plan, credits: p.credits })
+        });
+        if (res.ok) {
+            const user = JSON.parse(localStorage.getItem('user')||'{}');
+            user.credits = p.credits;
+            user.plan = plan;
+            localStorage.setItem('user', JSON.stringify(user));
+            window.location.href = '/dashboard?upgraded=' + plan;
+        } else {
+            alert('Activation failed');
+        }
+    } catch(e) { alert('Error'); }
 }
 </script>
 {% endblock %}
