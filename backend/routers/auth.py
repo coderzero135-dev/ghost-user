@@ -12,9 +12,17 @@ class SignupRequest(BaseModel):
     email: str
     password: str
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
+class UpgradeRequest(BaseModel):
+    plan: str
+    credits: int
+
+
+@router.post("/upgrade")
+async def upgrade(req: UpgradeRequest, user: User = Depends(require_user), db: AsyncSession = Depends(get_db)):
+    user.plan = req.plan
+    user.credits = req.credits
+    await db.commit()
+    return {"ok": True, "plan": user.plan, "credits": user.credits}
 
 class AuthResponse(BaseModel):
     token: str
@@ -32,7 +40,7 @@ async def signup(req: SignupRequest, db: AsyncSession = Depends(get_db)):
     await db.flush()
     await db.refresh(user)
     token = create_token(user.id)
-    return AuthResponse(token=token, user={"id": user.id, "email": user.email, "credits": user.credits, "is_admin": bool(user.is_admin)})
+    return AuthResponse(token=token, user={"id": user.id, "email": user.email, "credits": user.credits, "is_admin": bool(user.is_admin), "plan": user.plan or "free"})
 
 @router.post("/login")
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
@@ -41,8 +49,8 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     if not user or not user.password_hash or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_token(user.id)
-    return AuthResponse(token=token, user={"id": user.id, "email": user.email, "credits": user.credits, "is_admin": bool(user.is_admin)})
+    return AuthResponse(token=token, user={"id": user.id, "email": user.email, "credits": user.credits, "is_admin": bool(user.is_admin), "plan": user.plan or "free"})
 
 @router.get("/me")
 async def get_me(user: User = Depends(require_user)):
-    return {"id": user.id, "email": user.email, "credits": user.credits, "is_admin": bool(user.is_admin)}
+    return {"id": user.id, "email": user.email, "credits": user.credits, "is_admin": bool(user.is_admin), "plan": user.plan or "free"}

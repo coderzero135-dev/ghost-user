@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Upgrade{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-20">
+    <div id="checkout-content">
+        <div class="text-center py-12">
+            <div class="animate-spin text-2xl mb-3 inline-block">⏳</div>
+            <p class="text-sm text-gray-500">Loading checkout...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const plan = params.get('plan') || 'pro';
+const token = localStorage.getItem('token');
+
+if (!token) { window.location.href = '/login?redirect=checkout&plan=' + plan; throw 0; }
+
+const plans = {
+    pro: { name: 'Pro', price: '₹999', credits: 30, features: ['30 tests/month','Full UX breakdown','Session replays','Priority support'] },
+    agency: { name: 'Agency', price: '₹4,999', credits: 999, features: ['Unlimited tests','White-label reports','API access','Custom personas'] }
+};
+const p = plans[plan] || plans.pro;
+
+document.getElementById('checkout-content').innerHTML = `
+    <div class="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-8">
+        <div class="text-center mb-8">
+            <div class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-4">
+                <span class="text-xl">💳</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight">Upgrade to ${p.name}</h1>
+        </div>
+
+        <div class="bg-white/[0.04] rounded-xl p-5 mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-400">Plan</span>
+                <span class="font-semibold">${p.name}</span>
+            </div>
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-400">Billing</span>
+                <span class="font-semibold">Monthly</span>
+            </div>
+            <div class="border-t border-white/[0.06] pt-3 mt-3 flex justify-between items-center">
+                <span class="font-semibold">Total</span>
+                <span class="text-xl font-bold text-primary-400">${p.price}</span>
+            </div>
+        </div>
+
+        <ul class="space-y-2 mb-6 text-sm text-gray-400">
+            ${p.features.map(f => `<li class="flex items-center gap-2"><svg class="w-4 h-4 text-primary-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>${f}</li>`).join('')}
+        </ul>
+
+        <button onclick="activatePlan()" id="pay-btn" class="w-full py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30 active:scale-[0.98]">
+            Activate ${p.name} — ${p.price}
+        </button>
+
+        <p class="text-xs text-gray-600 text-center mt-4">Test mode — no real payment processed</p>
+    </div>`;
+</script>
+
+<script>
+async function activatePlan() {
+    const btn = document.getElementById('pay-btn');
+    btn.textContent = 'Activating...';
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+        const user = await res.json();
+
+        const planRes = await fetch('/api/auth/upgrade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ plan, credits: plans[plan].credits })
+        });
+
+        if (planRes.ok) {
+            window.location.href = '/dashboard?upgraded=' + plan;
+        } else {
+            const err = await planRes.json();
+            btn.textContent = err.detail || 'Failed — try again';
+            setTimeout(() => { btn.textContent = 'Activate ' + plans[plan].name + ' — ' + plans[plan].price; btn.disabled = false; }, 2000);
+        }
+    } catch(e) {
+        btn.textContent = 'Error — retry';
+        setTimeout(() => { btn.textContent = 'Activate ' + plans[plan].name + ' — ' + plans[plan].price; btn.disabled = false; }, 2000);
+    }
+}
+</script>
+{% endblock %}

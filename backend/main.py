@@ -65,3 +65,7 @@ async def test_report(request: Request, test_id: int):
 @app.get("/admin")
 async def admin_page(request: Request):
     return render("admin.html", request=request)
+
+@app.get("/checkout")
+async def checkout_page(request: Request):
+    return render("checkout.html", request=request)

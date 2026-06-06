@@ -42,7 +42,11 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         if (!res.ok) { err.textContent = data.detail || 'Invalid credentials'; err.classList.remove('hidden'); return; }
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        window.location.href = '/dashboard';
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+        const plan = params.get('plan');
+        if (redirect === 'checkout' && plan) window.location.href = '/checkout?plan=' + plan;
+        else window.location.href = '/dashboard';
     } catch(e) { err.textContent = 'Connection error'; err.classList.remove('hidden'); }
 });
 </script>
